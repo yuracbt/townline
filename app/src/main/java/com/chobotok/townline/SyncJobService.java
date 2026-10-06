@@ -27,6 +27,7 @@ public class SyncJobService extends JobService {
 
     public static final int JOB_ID = 1001;
     private static final int ONE_OFF_ID = 1002;
+    private static final int CHAIN_ID = 1003; // sub-15min intervals: one-off jobs chained together
     private static final String CHANNEL_ID = "townline_new";
     private static final int NOTIF_ID = 1;
     private static final String UA = "TownLine/1.0 (Android)";
@@ -38,6 +39,15 @@ public class SyncJobService extends JobService {
                 doSync();
             } catch (Exception e) {
                 android.util.Log.e("TownLine", "sync failed", e);
+            }
+            // sub-15min mode: chain the next run (setPeriodic can't go below 15 min)
+            if (params.getJobId() == CHAIN_ID) {
+                long intervalMs = Math.max(1, new Prefs(this).getIntervalMinutes()) * 60_000L;
+                if (intervalMs < JobInfo.getMinPeriodMillis()) {
+                    JobScheduler js =
+                            (JobScheduler) getSystemService(Context.JOB_SCHEDULER_SERVICE);
+                    if (js != null) scheduleChain(js, this, intervalMs);
+                }
             }
             jobFinished(params, false);
         }).start();
@@ -52,12 +62,28 @@ public class SyncJobService extends JobService {
     /** Schedules (or re-schedules) the periodic scan using the saved interval. */
     public static void schedule(Context ctx) {
         Prefs prefs = new Prefs(ctx);
-        long intervalMs = Math.max(1, prefs.getIntervalHours()) * 3600_000L;
+        long intervalMs = Math.max(1, prefs.getIntervalMinutes()) * 60_000L;
         JobScheduler js = (JobScheduler) ctx.getSystemService(Context.JOB_SCHEDULER_SERVICE);
         if (js == null) return;
-        JobInfo job = new JobInfo.Builder(JOB_ID, new ComponentName(ctx, SyncJobService.class))
+        js.cancel(JOB_ID);
+        js.cancel(CHAIN_ID);
+        if (intervalMs >= JobInfo.getMinPeriodMillis()) {
+            JobInfo job = new JobInfo.Builder(JOB_ID, new ComponentName(ctx, SyncJobService.class))
+                    .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
+                    .setPeriodic(intervalMs)
+                    .setPersisted(true)
+                    .build();
+            js.schedule(job);
+        } else {
+            scheduleChain(js, ctx, intervalMs);
+        }
+    }
+
+    private static void scheduleChain(JobScheduler js, Context ctx, long intervalMs) {
+        JobInfo job = new JobInfo.Builder(CHAIN_ID, new ComponentName(ctx, SyncJobService.class))
                 .setRequiredNetworkType(JobInfo.NETWORK_TYPE_ANY)
-                .setPeriodic(intervalMs)
+                .setMinimumLatency(intervalMs)
+                .setOverrideDeadline(intervalMs * 2)
                 .setPersisted(true)
                 .build();
         js.schedule(job);
