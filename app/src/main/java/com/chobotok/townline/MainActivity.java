@@ -102,6 +102,20 @@ public class MainActivity extends Activity {
         long ls = prefs.getLastSync();
         lastSync.setText(ls == 0 ? "Last scan: —"
                 : "Last scan: " + relTime(ls) + " • every " + prefs.getIntervalHours() + "h");
+        int nc = db.getNewCount();
+        TextView newCount = findViewById(R.id.newCount);
+        if (nc > 0) {
+            newCount.setVisibility(View.VISIBLE);
+            newCount.setText(nc == 1 ? "1 new story — tap to mark read"
+                    : nc + " new stories — tap to mark read");
+            newCount.setOnClickListener(v -> {
+                db.markAllRead();
+                refresh();
+            });
+        } else {
+            newCount.setVisibility(View.GONE);
+            newCount.setOnClickListener(null);
+        }
     }
 
     private void buildChips() {
