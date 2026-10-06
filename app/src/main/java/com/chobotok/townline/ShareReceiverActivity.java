@@ -10,9 +10,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Share target: from Facebook (or any app) use Share -> TownLine and the post
- * lands in your line under the Facebook category, with a notification.
- * This is the ToS-safe way to pull group discussions in — you curate, the app keeps.
+ * Share target: from any app use Share -> TownLine and the link
+ * lands in your line under the Saved category, with a notification.
  */
 public class ShareReceiverActivity extends Activity {
 
@@ -32,20 +31,20 @@ public class ShareReceiverActivity extends Activity {
         if (link.isEmpty()) link = firstUrl(subject);
 
         String title = !subject.trim().isEmpty() ? subject.trim() : firstLine(text).trim();
-        if (title.isEmpty() || URL.matcher(title).matches()) title = "Shared Facebook post";
+        if (title.isEmpty() || URL.matcher(title).matches()) title = "Saved link";
         if (title.length() > 140) title = title.substring(0, 140);
 
         String desc = text.length() > 500 ? text.substring(0, 500) : text;
 
         if (link.isEmpty()) {
-            Toast.makeText(this, "Nothing to save — no link in the shared post", Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "Nothing to save — no link in the shared content", Toast.LENGTH_LONG).show();
             finish();
             return;
         }
 
         NewsDbHelper db = new NewsDbHelper(this);
         boolean added = db.insertItemIfNew(-1, link, title, link, desc,
-                System.currentTimeMillis(), "Facebook");
+                System.currentTimeMillis(), "Saved");
         db.close();
 
         if (added) {
