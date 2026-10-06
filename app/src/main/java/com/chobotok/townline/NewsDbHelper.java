@@ -11,7 +11,7 @@ import java.util.List;
 
 public class NewsDbHelper extends SQLiteOpenHelper {
     private static final String DB = "townline.db";
-    private static final int VERSION = 1;
+    private static final int VERSION = 2;
 
     public NewsDbHelper(Context c) {
         super(c, DB, null, VERSION);
@@ -26,11 +26,16 @@ public class NewsDbHelper extends SQLiteOpenHelper {
                 " source_id INTEGER, guid TEXT UNIQUE, title TEXT, link TEXT," +
                 " description TEXT, pub_date INTEGER, fetched_at INTEGER, is_new INTEGER DEFAULT 1)");
         db.execSQL("CREATE INDEX idx_items_pub ON items(pub_date DESC)");
+        db.execSQL("CREATE TABLE IF NOT EXISTS links (_id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                " kind TEXT, name TEXT, url TEXT)");
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldV, int newV) {
-        // v1: nothing to migrate
+        if (oldV < 2) {
+            db.execSQL("CREATE TABLE IF NOT EXISTS links (_id INTEGER PRIMARY KEY AUTOINCREMENT," +
+                    " kind TEXT, name TEXT, url TEXT)");
+        }
     }
 
     // ---------- sources ----------
@@ -148,5 +153,43 @@ public class NewsDbHelper extends SQLiteOpenHelper {
     public void pruneOld(int keep) {
         getWritableDatabase().execSQL(
                 "DELETE FROM items WHERE _id NOT IN (SELECT _id FROM items ORDER BY pub_date DESC, _id DESC LIMIT " + keep + ")");
+    }
+
+    // ---------- quick links (Facebook groups, event pages) ----------
+
+    public long addLink(String kind, String name, String url) {
+        ContentValues v = new ContentValues();
+        v.put("kind", kind);
+        v.put("name", name);
+        v.put("url", url);
+        return getWritableDatabase().insert("links", null, v);
+    }
+
+    public List<Link> getLinks(String kind) {
+        List<Link> out = new ArrayList<>();
+        Cursor c = getReadableDatabase().query("links", null, "kind=?",
+                new String[]{kind}, null, null, "_id ASC");
+        while (c.moveToNext()) {
+            Link l = new Link();
+            l.id = c.getLong(c.getColumnIndexOrThrow("_id"));
+            l.kind = c.getString(c.getColumnIndexOrThrow("kind"));
+            l.name = c.getString(c.getColumnIndexOrThrow("name"));
+            l.url = c.getString(c.getColumnIndexOrThrow("url"));
+            out.add(l);
+        }
+        c.close();
+        return out;
+    }
+
+    public int getLinksCount() {
+        Cursor c = getReadableDatabase().rawQuery("SELECT COUNT(*) FROM links", null);
+        int n = 0;
+        if (c.moveToFirst()) n = c.getInt(0);
+        c.close();
+        return n;
+    }
+
+    public void deleteLink(long id) {
+        getWritableDatabase().delete("links", "_id=?", new String[]{String.valueOf(id)});
     }
 }
