@@ -17,6 +17,11 @@ notification.
   and posts a notification with the new headlines
 - Tap a story to read it in the built-in reader; mark stories read as you go
 - Add any public RSS/Atom feed URL of your own in Settings
+- **Discover screen**: your Facebook groups (one-tap links — Meta doesn't
+  allow automatic group scanning, so add your groups here yourself) plus
+  local event pages: Airdrie Chamber business events, City of Airdrie
+  community calendar, Airdrie Public Library programs & bookings, Eventbrite
+  Airdrie
 
 ## First run
 
