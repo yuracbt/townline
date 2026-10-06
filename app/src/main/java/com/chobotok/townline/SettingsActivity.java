@@ -34,6 +34,7 @@ public class SettingsActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_settings);
+        findViewById(R.id.btnBack).setOnClickListener(v -> finish());
         setTitle("Settings");
 
         db = new NewsDbHelper(this);
