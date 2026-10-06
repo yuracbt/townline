@@ -53,6 +53,8 @@ public class DiscoverActivity extends Activity {
                 showAddDialog("Add event page", "https://…"));
 
         findViewById(R.id.btnScanNearby).setOnClickListener(v -> scanNearby());
+
+        findViewById(R.id.btnBack).setOnClickListener(v -> finish());
     }
 
     @Override
