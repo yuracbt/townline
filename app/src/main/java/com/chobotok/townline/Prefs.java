@@ -26,6 +26,12 @@ public class Prefs {
     public boolean isNotifyEnabled() { return p.getBoolean("notify", true); }
     public void setNotifyEnabled(boolean b) { p.edit().putBoolean("notify", b).apply(); }
 
+    public String getFilterCategory() { return p.getString("filter_cat", "All"); }
+    public void setFilterCategory(String c) { p.edit().putString("filter_cat", c == null ? "All" : c).apply(); }
+
+    public boolean isRecatV3() { return p.getBoolean("recat_v3", false); }
+    public void setRecatV3() { p.edit().putBoolean("recat_v3", true).apply(); }
+
     public long getLastSync() { return p.getLong("last_sync", 0); }
     public void setLastSync(long t) { p.edit().putLong("last_sync", t).apply(); }
 }
