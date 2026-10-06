@@ -101,7 +101,7 @@ public class MainActivity extends Activity {
         adapter.notifyDataSetChanged();
         long ls = prefs.getLastSync();
         lastSync.setText(ls == 0 ? "Last scan: —"
-                : "Last scan: " + relTime(ls) + " • every " + prefs.getIntervalHours() + "h");
+                : "Last scan: " + relTime(ls) + " • every " + intervalLabel(prefs.getIntervalMinutes()));
         int nc = db.getNewCount();
         TextView newCount = findViewById(R.id.newCount);
         if (nc > 0) {
@@ -152,6 +152,11 @@ public class MainActivity extends Activity {
             });
             row.addView(chip);
         }
+    }
+
+    static String intervalLabel(int minutes) {
+        if (minutes < 60) return minutes + "m";
+        return (minutes / 60) + "h";
     }
 
     static String relTime(long t) {
