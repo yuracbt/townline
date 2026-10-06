@@ -32,6 +32,9 @@ public class Prefs {
     public boolean isRecatV3() { return p.getBoolean("recat_v3", false); }
     public void setRecatV3() { p.edit().putBoolean("recat_v3", true).apply(); }
 
+    public boolean isLinksSeeded() { return p.getBoolean("links_seeded", false); }
+    public void setLinksSeeded() { p.edit().putBoolean("links_seeded", true).apply(); }
+
     public long getLastSync() { return p.getLong("last_sync", 0); }
     public void setLastSync(long t) { p.edit().putLong("last_sync", t).apply(); }
 }
