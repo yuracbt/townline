@@ -2,6 +2,7 @@ package com.chobotok.townline;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
@@ -67,6 +68,16 @@ public class SettingsActivity extends Activity {
             Toast.makeText(this, "Scanning…", Toast.LENGTH_SHORT).show();
         });
 
+        findViewById(R.id.btnBatterySettings).setOnClickListener(v -> {
+            try {
+                startActivity(new Intent(
+                        android.provider.Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS));
+            } catch (Exception e) {
+                Toast.makeText(this, "Open Settings → Apps → TownLine → Battery → Unrestricted",
+                        Toast.LENGTH_LONG).show();
+            }
+        });
+
         LinearLayout sourceBox = findViewById(R.id.sourceList);
         this.sourceBox = sourceBox;
 
@@ -79,6 +90,19 @@ public class SettingsActivity extends Activity {
     protected void onResume() {
         super.onResume();
         reloadSources();
+        refreshBatteryWarn();
+    }
+
+    /** Shows the battery-optimization warning only when background work may be throttled. */
+    private void refreshBatteryWarn() {
+        boolean ignoring = true;
+        try {
+            android.os.PowerManager pm =
+                    (android.os.PowerManager) getSystemService(POWER_SERVICE);
+            if (pm != null) ignoring = pm.isIgnoringBatteryOptimizations(getPackageName());
+        } catch (Exception ignored) { }
+        View warn = findViewById(R.id.batteryWarn);
+        warn.setVisibility(ignoring ? View.GONE : View.VISIBLE);
     }
 
     private void reloadSources() {
