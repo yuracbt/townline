@@ -51,8 +51,8 @@ public class MainActivity extends Activity {
             db.markRead(item.id);
             item.isNew = false;
             adapter.notifyDataSetChanged();
-            if ("Facebook".equals(item.category)) {
-                // open in your browser/FB app so you're logged in
+            if ("Saved".equals(item.category)) {
+                // open in your browser so you're logged in
                 try {
                     startActivity(new Intent(Intent.ACTION_VIEW,
                             android.net.Uri.parse(item.link)));
