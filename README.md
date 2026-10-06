@@ -17,19 +17,28 @@ notification.
   and posts a notification with the new headlines
 - Tap a story to read it in the built-in reader; mark stories read as you go
 - Add any public RSS/Atom feed URL of your own in Settings
-- **Discover screen**: your Facebook groups (one-tap links — Meta doesn't
-  allow automatic group scanning, so add your groups here yourself) plus
-  local event pages: Airdrie Chamber business events, City of Airdrie
-  community calendar, Airdrie Public Library programs & bookings, Eventbrite
-  Airdrie
+## Features
+
+- Set your town once — the app builds a local news line for it
+- **Suggested feeds**: the app checks a curated directory of local-news RSS
+  feeds against your town, verifies each one actually works, and lets you
+  add them with one tap (Links → Suggested feeds)
+- Background scans every 4 hours (1/2/4/8/12/24h in Settings), re-scheduled
+  after reboot; notification when new stories arrive
 - **Categories & filters**: every story is auto-categorized (News, Community,
-  Events, Business, Calgary, Facebook) — tap a chip to filter the line
-- **Share to TownLine**: from the Facebook app, Share → TownLine on any group
-  post and it lands in your line under Facebook, with a notification.
-  Saved posts are listed under Discover → My Facebook groups → Saved posts,
-  where you can open or remove them.
-  (Meta removed the Groups API entirely in April 2024, so no app — this one
-  included — can log in and pull group discussions automatically.)
+  Events, Business, Calgary, Saved) — tap a chip to filter the line
+- **Save to TownLine**: from any app, Share → TownLine and the link lands in
+  your line under Saved, with a notification. Saved links are listed under
+  Links, where you can open or remove them.
+- **Discover screen**: local event pages (Airdrie Chamber business events,
+  City of Airdrie community calendar, Airdrie Public Library programs &
+  bookings, Eventbrite) — add your own
+- In-app reader, unread markers, custom RSS/Atom feeds, enable/disable/delete
+  sources
+
+Note: Meta removed the Facebook Groups API entirely in April 2024, so no app
+can log in and pull group discussions automatically — that's why TownLine
+doesn't have Facebook login.
 
 ## First run
 
