@@ -95,14 +95,20 @@ public class DiscoverActivity extends Activity {
                 if (!haveLinks.contains(norm(p.url))) working.add(p);
             }
             final List<FeedDirectory.Entry> result = working;
+            final int total = FeedDirectory.totalEntries(DiscoverActivity.this);
             runOnUiThread(() -> {
                 suggestAdapter.state = SuggestAdapter.DONE;
                 suggestAdapter.entries = result;
                 suggestAdapter.notifyDataSetChanged();
-                ((TextView) findViewById(R.id.suggestSubtitle)).setText(result.isEmpty()
-                        ? "No new feeds found for " + prefs.getTown()
-                                + " — the directory grows with each release."
-                        : result.size() + " suggestion(s) for " + prefs.getTown() + ":");
+                TextView sub = findViewById(R.id.suggestSubtitle);
+                if (total == 0) {
+                    sub.setText("Feed directory couldn't be loaded — please reinstall the app.");
+                } else if (result.isEmpty()) {
+                    sub.setText("No new feeds found for " + prefs.getTown()
+                            + " — the directory grows with each release.");
+                } else {
+                    sub.setText(result.size() + " suggestion(s) for " + prefs.getTown() + ":");
+                }
             });
         }).start();
     }
@@ -424,11 +430,14 @@ public class DiscoverActivity extends Activity {
                     db.addLink("events", e.name, e.url);
                 } else {
                     db.addSource(e.name, e.url, true, false);
+                    SyncJobService.syncNow(DiscoverActivity.this);
                 }
                 added.add(norm(e.url));
                 notifyDataSetChanged();
                 Toast.makeText(DiscoverActivity.this,
-                        "Added — it will be scanned with the next sync", Toast.LENGTH_SHORT).show();
+                        "place".equals(e.kind) ? "Added to Events & places"
+                                : "Added — scanning now",
+                        Toast.LENGTH_SHORT).show();
             });
             return convertView;
         }
