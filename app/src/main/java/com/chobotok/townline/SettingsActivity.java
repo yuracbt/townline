@@ -24,7 +24,7 @@ public class SettingsActivity extends Activity {
 
     private NewsDbHelper db;
     private Prefs prefs;
-    private SourceAdapter adapter;
+    private LinearLayout sourceBox;
 
     private static final String[] INTERVAL_LABELS =
             {"Every hour", "Every 2 hours", "Every 4 hours", "Every 8 hours", "Every 12 hours", "Every day"};
@@ -67,9 +67,8 @@ public class SettingsActivity extends Activity {
             Toast.makeText(this, "Scanning…", Toast.LENGTH_SHORT).show();
         });
 
-        ListView sourceList = findViewById(R.id.sourceList);
-        adapter = new SourceAdapter();
-        sourceList.setAdapter(adapter);
+        LinearLayout sourceBox = findViewById(R.id.sourceList);
+        this.sourceBox = sourceBox;
 
         findViewById(R.id.btnAddSource).setOnClickListener(v -> showAddSourceDialog());
 
@@ -83,8 +82,46 @@ public class SettingsActivity extends Activity {
     }
 
     private void reloadSources() {
-        adapter.sources = db.getSources();
-        adapter.notifyDataSetChanged();
+        renderSources();
+    }
+
+    private void renderSources() {
+        sourceBox.removeAllViews();
+        for (Source s : db.getSources()) {
+            View row = getLayoutInflater().inflate(R.layout.item_source, sourceBox, false);
+            TextView name = row.findViewById(R.id.sourceName);
+            TextView meta = row.findViewById(R.id.sourceMeta);
+            CheckBox enabled = row.findViewById(R.id.sourceEnabled);
+            Button delete = row.findViewById(R.id.sourceDelete);
+
+            name.setText(s.name);
+            StringBuilder m = new StringBuilder();
+            if (s.lastError != null) m.append("Error: ").append(s.lastError);
+            else if (s.lastSync == 0) m.append("Not scanned yet");
+            else m.append(s.lastCount).append(" stories • ")
+                    .append(MainActivity.relTime(s.lastSync));
+            meta.setText(m.toString());
+
+            enabled.setOnCheckedChangeListener(null);
+            enabled.setChecked(s.enabled);
+            enabled.setOnCheckedChangeListener((b, checked) -> {
+                s.enabled = checked;
+                db.updateSource(s);
+            });
+
+            delete.setOnClickListener(v -> {
+                new AlertDialog.Builder(SettingsActivity.this)
+                        .setTitle("Remove source?")
+                        .setMessage(s.name)
+                        .setPositiveButton("Remove", (d, w) -> {
+                            db.deleteSource(s.id);
+                            renderSources();
+                        })
+                        .setNegativeButton("Cancel", null)
+                        .show();
+            });
+            sourceBox.addView(row);
+        }
     }
 
     private int indexOf(int hours) {
@@ -131,53 +168,5 @@ public class SettingsActivity extends Activity {
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
-    }
-
-    private class SourceAdapter extends BaseAdapter {
-        List<Source> sources = new java.util.ArrayList<>();
-
-        @Override public int getCount() { return sources.size(); }
-        @Override public Object getItem(int p) { return sources.get(p); }
-        @Override public long getItemId(int p) { return sources.get(p).id; }
-
-        @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
-            if (convertView == null) {
-                convertView = getLayoutInflater().inflate(R.layout.item_source, parent, false);
-            }
-            Source s = sources.get(position);
-            TextView name = convertView.findViewById(R.id.sourceName);
-            TextView meta = convertView.findViewById(R.id.sourceMeta);
-            CheckBox enabled = convertView.findViewById(R.id.sourceEnabled);
-            Button delete = convertView.findViewById(R.id.sourceDelete);
-
-            name.setText(s.name);
-            StringBuilder m = new StringBuilder();
-            if (s.lastError != null) m.append("Error: ").append(s.lastError);
-            else if (s.lastSync == 0) m.append("Not scanned yet");
-            else m.append(s.lastCount).append(" stories • ")
-                    .append(MainActivity.relTime(s.lastSync));
-            meta.setText(m.toString());
-
-            enabled.setOnCheckedChangeListener(null);
-            enabled.setChecked(s.enabled);
-            enabled.setOnCheckedChangeListener((b, checked) -> {
-                s.enabled = checked;
-                db.updateSource(s);
-            });
-
-            delete.setOnClickListener(v -> {
-                new AlertDialog.Builder(SettingsActivity.this)
-                        .setTitle("Remove source?")
-                        .setMessage(s.name)
-                        .setPositiveButton("Remove", (d, w) -> {
-                            db.deleteSource(s.id);
-                            reloadSources();
-                        })
-                        .setNegativeButton("Cancel", null)
-                        .show();
-            });
-            return convertView;
-        }
     }
 }
