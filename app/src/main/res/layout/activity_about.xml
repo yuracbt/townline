@@ -7,6 +7,15 @@
     android:gravity="center_horizontal"
     android:padding="32dp">
 
+    <Button
+        android:id="@+id/btnBack"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="start"
+        android:text="← Back"
+        android:textColor="#FFFFFF"
+        android:backgroundTint="@color/teal" />
+
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
