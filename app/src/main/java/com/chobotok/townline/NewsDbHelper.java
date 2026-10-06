@@ -249,4 +249,29 @@ public class NewsDbHelper extends SQLiteOpenHelper {
     public void deleteLink(long id) {
         getWritableDatabase().delete("links", "_id=?", new String[]{String.valueOf(id)});
     }
+
+    // ---------- saved Facebook posts ----------
+
+    public List<NewsItem> getFacebookItems() {
+        List<NewsItem> out = new ArrayList<>();
+        Cursor c = getReadableDatabase().rawQuery(
+                "SELECT _id, title, link, description, pub_date FROM items" +
+                " WHERE category='Facebook' ORDER BY pub_date DESC, _id DESC", null);
+        while (c.moveToNext()) {
+            NewsItem n = new NewsItem();
+            n.id = c.getLong(0);
+            n.title = c.getString(1);
+            n.link = c.getString(2);
+            n.description = c.getString(3);
+            n.pubDate = c.getLong(4);
+            n.category = "Facebook";
+            out.add(n);
+        }
+        c.close();
+        return out;
+    }
+
+    public void deleteItem(long id) {
+        getWritableDatabase().delete("items", "_id=?", new String[]{String.valueOf(id)});
+    }
 }
