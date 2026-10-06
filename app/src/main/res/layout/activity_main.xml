@@ -8,70 +8,77 @@
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:orientation="horizontal"
+        android:orientation="vertical"
         android:background="@color/teal_dark"
-        android:padding="12dp"
-        android:gravity="center_vertical">
+        android:padding="12dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/feed_title"
+            android:textColor="#FFFFFF"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/lastSync"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#CCFFFFFF"
+            android:textSize="12sp"
+            android:text="Last scan: —" />
 
         <LinearLayout
-            android:layout_width="0dp"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:orientation="vertical">
+            android:orientation="horizontal"
+            android:layout_marginTop="8dp">
 
-            <TextView
-                android:layout_width="wrap_content"
+            <Button
+                android:id="@+id/btnRefresh"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:text="@string/feed_title"
+                android:layout_weight="1"
+                android:minWidth="0dp"
+                android:text="Sync"
                 android:textColor="#FFFFFF"
-                android:textSize="20sp"
-                android:textStyle="bold" />
+                android:backgroundTint="@color/teal" />
 
-            <TextView
-                android:id="@+id/lastSync"
-                android:layout_width="wrap_content"
+            <Button
+                android:id="@+id/btnDiscover"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:textColor="#CCFFFFFF"
-                android:textSize="12sp"
-                android:text="Last scan: —" />
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:minWidth="0dp"
+                android:text="Links"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="@color/teal" />
+
+            <Button
+                android:id="@+id/btnAbout"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:minWidth="0dp"
+                android:text="ⓘ"
+                android:textSize="18sp"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="@color/teal" />
+
+            <Button
+                android:id="@+id/btnSettings"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:minWidth="0dp"
+                android:text="⚙"
+                android:textSize="18sp"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="@color/teal" />
         </LinearLayout>
-
-        <Button
-            android:id="@+id/btnRefresh"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Sync"
-            android:textColor="#FFFFFF"
-            android:backgroundTint="@color/teal" />
-
-        <Button
-            android:id="@+id/btnDiscover"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:text="Links"
-            android:textColor="#FFFFFF"
-            android:backgroundTint="@color/teal" />
-
-        <Button
-            android:id="@+id/btnAbout"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:text="ⓘ"
-            android:textSize="18sp"
-            android:textColor="#FFFFFF"
-            android:backgroundTint="@color/teal" />
-
-        <Button
-            android:id="@+id/btnSettings"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:text="⚙"
-            android:textSize="18sp"
-            android:textColor="#FFFFFF"
-            android:backgroundTint="@color/teal" />
     </LinearLayout>
 
     <HorizontalScrollView
