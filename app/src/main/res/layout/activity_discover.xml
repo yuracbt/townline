@@ -13,55 +13,24 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="My Facebook groups"
+            android:text="Suggested feeds"
             android:textSize="18sp"
             android:textStyle="bold"
             android:textColor="@color/teal_dark" />
 
         <TextView
+            android:id="@+id/suggestSubtitle"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="4dp"
-            android:text="Meta doesn't allow apps to scan group discussions automatically. Add your groups here for one-tap access instead."
+            android:text="Checking which local feeds work…"
             android:textSize="13sp"
             android:textColor="@color/grey" />
 
         <ListView
-            android:id="@+id/fbList"
+            android:id="@+id/suggestList"
             android:layout_width="match_parent"
-            android:layout_height="180dp"
-            android:layout_marginTop="8dp" />
-
-        <Button
-            android:id="@+id/btnAddFb"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:text="+ Add Facebook group"
-            android:backgroundTint="@color/teal"
-            android:textColor="#FFFFFF" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="Saved posts"
-            android:textSize="15sp"
-            android:textStyle="bold"
-            android:textColor="@color/teal_dark" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:text="Posts you shared from Facebook via Share → TownLine."
-            android:textSize="13sp"
-            android:textColor="@color/grey" />
-
-        <ListView
-            android:id="@+id/fbPostsList"
-            android:layout_width="match_parent"
-            android:layout_height="180dp"
+            android:layout_height="200dp"
             android:layout_marginTop="8dp" />
 
         <TextView
@@ -84,7 +53,7 @@
         <ListView
             android:id="@+id/eventsList"
             android:layout_width="match_parent"
-            android:layout_height="260dp"
+            android:layout_height="220dp"
             android:layout_marginTop="8dp" />
 
         <Button
@@ -95,5 +64,28 @@
             android:text="+ Add event page"
             android:backgroundTint="@color/teal"
             android:textColor="#FFFFFF" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="28dp"
+            android:text="Saved links"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:textColor="@color/teal_dark" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Links you saved via Share → TownLine from any app."
+            android:textSize="13sp"
+            android:textColor="@color/grey" />
+
+        <ListView
+            android:id="@+id/savedList"
+            android:layout_width="match_parent"
+            android:layout_height="180dp"
+            android:layout_marginTop="8dp" />
     </LinearLayout>
 </ScrollView>
