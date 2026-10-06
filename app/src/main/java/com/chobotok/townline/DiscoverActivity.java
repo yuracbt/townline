@@ -15,15 +15,17 @@ import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.util.ArrayList;
 import java.util.List;
 
-/** Quick links: your Facebook groups + local event pages. Opens in your browser. */
+/** Discover: suggested local feeds, event pages, saved links. Opens in your browser. */
 public class DiscoverActivity extends Activity {
 
     private NewsDbHelper db;
-    private LinkAdapter fbAdapter;
+    private Prefs prefs;
     private LinkAdapter eventsAdapter;
-    private PostAdapter fbPostsAdapter;
+    private PostAdapter savedAdapter;
+    private SuggestAdapter suggestAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,39 +34,74 @@ public class DiscoverActivity extends Activity {
         setTitle("Discover");
 
         db = new NewsDbHelper(this);
+        prefs = new Prefs(this);
 
-        ListView fbList = findViewById(R.id.fbList);
+        ListView suggestList = findViewById(R.id.suggestList);
         ListView eventsList = findViewById(R.id.eventsList);
-        ListView fbPostsList = findViewById(R.id.fbPostsList);
-        fbAdapter = new LinkAdapter("fb");
-        eventsAdapter = new LinkAdapter("events");
-        fbPostsAdapter = new PostAdapter();
-        fbList.setAdapter(fbAdapter);
+        ListView savedList = findViewById(R.id.savedList);
+        suggestAdapter = new SuggestAdapter();
+        eventsAdapter = new LinkAdapter();
+        savedAdapter = new PostAdapter();
+        suggestList.setAdapter(suggestAdapter);
         eventsList.setAdapter(eventsAdapter);
-        fbPostsList.setAdapter(fbPostsAdapter);
+        savedList.setAdapter(savedAdapter);
 
-        findViewById(R.id.btnAddFb).setOnClickListener(v ->
-                showAddDialog("fb", "Facebook group", "Paste the group's link from Facebook"));
+        ((TextView) findViewById(R.id.suggestSubtitle)).setText(
+                "Checking which local feeds work for " + prefs.getTown() + "…");
+
         findViewById(R.id.btnAddEvent).setOnClickListener(v ->
-                showAddDialog("events", "Event page", "https://…"));
+                showAddDialog("Add event page", "https://…"));
     }
 
     @Override
     protected void onResume() {
         super.onResume();
         reload();
+        checkSuggestedFeeds();
     }
 
     private void reload() {
-        fbAdapter.links = db.getLinks("fb");
         eventsAdapter.links = db.getLinks("events");
-        fbPostsAdapter.posts = db.getFacebookItems();
-        fbAdapter.notifyDataSetChanged();
+        savedAdapter.posts = db.getSavedItems();
         eventsAdapter.notifyDataSetChanged();
-        fbPostsAdapter.notifyDataSetChanged();
+        savedAdapter.notifyDataSetChanged();
     }
 
-    private void showAddDialog(final String kind, String title, String urlHint) {
+    /** Verify directory feeds for this town in the background, then show the working ones. */
+    private void checkSuggestedFeeds() {
+        suggestAdapter.state = SuggestAdapter.CHECKING;
+        suggestAdapter.entries = new ArrayList<>();
+        suggestAdapter.notifyDataSetChanged();
+        new Thread(() -> {
+            List<FeedDirectory.Entry> candidates =
+                    FeedDirectory.suggestionsFor(DiscoverActivity.this, prefs.getTown());
+            // drop ones already added as sources
+            List<String> have = new ArrayList<>();
+            for (Source s : db.getSources()) have.add(norm(s.url));
+            List<FeedDirectory.Entry> working = new ArrayList<>();
+            for (FeedDirectory.Entry e : candidates) {
+                if (have.contains(norm(e.url))) continue;
+                if (FeedDirectory.isWorkingFeed(e.url)) working.add(e);
+            }
+            final List<FeedDirectory.Entry> result = working;
+            runOnUiThread(() -> {
+                suggestAdapter.state = SuggestAdapter.DONE;
+                suggestAdapter.entries = result;
+                suggestAdapter.notifyDataSetChanged();
+                ((TextView) findViewById(R.id.suggestSubtitle)).setText(result.isEmpty()
+                        ? "No new feeds found for " + prefs.getTown()
+                                + " — the directory grows with each release."
+                        : result.size() + " working local feed(s) for " + prefs.getTown() + ":");
+            });
+        }).start();
+    }
+
+    private static String norm(String u) {
+        if (u == null) return "";
+        return u.trim().toLowerCase().replaceAll("/$", "");
+    }
+
+    private void showAddDialog(String title, String urlHint) {
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setPadding(48, 32, 48, 16);
@@ -87,17 +124,57 @@ public class DiscoverActivity extends Activity {
                         Toast.makeText(this, "Link must start with http(s)://", Toast.LENGTH_LONG).show();
                         return;
                     }
-                    db.addLink(kind, name, url);
+                    db.addLink("events", name, url);
                     reload();
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
     }
 
-    private class LinkAdapter extends BaseAdapter {        final String kind;
-        List<Link> links = new java.util.ArrayList<>();
+    private void openExternal(String url) {
+        try {
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
+        } catch (Exception e) {
+            Toast.makeText(this, "Can't open link", Toast.LENGTH_SHORT).show();
+        }
+    }
 
-        LinkAdapter(String kind) { this.kind = kind; }
+    private class SuggestAdapter extends BaseAdapter {
+        static final int CHECKING = 0;
+        static final int DONE = 1;
+        int state = CHECKING;
+        List<FeedDirectory.Entry> entries = new ArrayList<>();
+        final List<String> added = new ArrayList<>();
+
+        @Override public int getCount() { return state == CHECKING ? 0 : entries.size(); }
+        @Override public Object getItem(int p) { return entries.get(p); }
+        @Override public long getItemId(int p) { return p; }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            if (convertView == null) {
+                convertView = getLayoutInflater().inflate(R.layout.item_suggest, parent, false);
+            }
+            final FeedDirectory.Entry e = entries.get(position);
+            ((TextView) convertView.findViewById(R.id.suggestName)).setText(e.name);
+            ((TextView) convertView.findViewById(R.id.suggestUrl)).setText(e.url);
+            Button add = convertView.findViewById(R.id.suggestAdd);
+            boolean done = added.contains(norm(e.url));
+            add.setText(done ? "✓" : "Add");
+            add.setEnabled(!done);
+            add.setOnClickListener(v -> {
+                db.addSource(e.name, e.url, true, false);
+                added.add(norm(e.url));
+                notifyDataSetChanged();
+                Toast.makeText(DiscoverActivity.this,
+                        "Added — it will be scanned with the next sync", Toast.LENGTH_SHORT).show();
+            });
+            return convertView;
+        }
+    }
+
+    private class LinkAdapter extends BaseAdapter {
+        List<Link> links = new ArrayList<>();
 
         @Override public int getCount() { return links.size(); }
         @Override public Object getItem(int p) { return links.get(p); }
@@ -115,21 +192,14 @@ public class DiscoverActivity extends Activity {
                 db.deleteLink(l.id);
                 reload();
             });
-            convertView.setOnClickListener(v -> {
-                try {
-                    Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(l.url));
-                    startActivity(i);
-                } catch (Exception e) {
-                    Toast.makeText(DiscoverActivity.this, "Can't open link", Toast.LENGTH_SHORT).show();
-                }
-            });
+            convertView.setOnClickListener(v -> openExternal(l.url));
             return convertView;
         }
     }
 
-    /** Posts saved via Share -> TownLine. Tap to open, X to remove. */
+    /** Links saved via Share -> TownLine. Tap to open, X to remove. */
     private class PostAdapter extends BaseAdapter {
-        List<NewsItem> posts = new java.util.ArrayList<>();
+        List<NewsItem> posts = new ArrayList<>();
 
         @Override public int getCount() { return posts.size(); }
         @Override public Object getItem(int p) { return posts.get(p); }
@@ -148,13 +218,7 @@ public class DiscoverActivity extends Activity {
                 reload();
                 Toast.makeText(DiscoverActivity.this, "Removed", Toast.LENGTH_SHORT).show();
             });
-            convertView.setOnClickListener(v -> {
-                try {
-                    startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(n.link)));
-                } catch (Exception e) {
-                    Toast.makeText(DiscoverActivity.this, "Can't open link", Toast.LENGTH_SHORT).show();
-                }
-            });
+            convertView.setOnClickListener(v -> openExternal(n.link));
             return convertView;
         }
     }
