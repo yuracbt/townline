@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/paper">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="24dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="TownLine"
+            android:textSize="32sp"
+            android:textStyle="bold"
+            android:textColor="@color/teal_dark" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="Your town's news line. Scans local news, papers and community feeds on a schedule, and pings you when something new appears."
+            android:textSize="15sp"
+            android:textColor="@color/ink" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="Your town"
+            android:textStyle="bold"
+            android:textSize="14sp"
+            android:textColor="@color/ink" />
+
+        <EditText
+            android:id="@+id/townInput"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:hint="Airdrie, AB"
+            android:text="Airdrie, AB"
+            android:inputType="text"
+            android:textSize="16sp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="Notifications"
+            android:textStyle="bold"
+            android:textSize="14sp"
+            android:textColor="@color/ink" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="TownLine checks every 4 hours and notifies you when new stories land. You'll be asked for notification permission on the next screen."
+            android:textSize="14sp"
+            android:textColor="@color/grey" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="Accounts"
+            android:textStyle="bold"
+            android:textSize="14sp"
+            android:textColor="@color/ink" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="No login needed — every built-in source is public. Facebook groups can't be scanned automatically (Meta doesn't allow it), but you can add any public RSS/Atom feed URL later in Settings."
+            android:textSize="14sp"
+            android:textColor="@color/grey" />
+
+        <Button
+            android:id="@+id/btnStart"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="32dp"
+            android:text="Start my news line"
+            android:textSize="16sp"
+            android:backgroundTint="@color/teal_dark"
+            android:textColor="#FFFFFF" />
+    </LinearLayout>
+</ScrollView>
