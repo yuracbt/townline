@@ -22,6 +22,12 @@ notification.
   local event pages: Airdrie Chamber business events, City of Airdrie
   community calendar, Airdrie Public Library programs & bookings, Eventbrite
   Airdrie
+- **Categories & filters**: every story is auto-categorized (News, Community,
+  Events, Business, Calgary, Facebook) — tap a chip to filter the line
+- **Share to TownLine**: from the Facebook app, Share → TownLine on any group
+  post and it lands in your line under Facebook, with a notification.
+  (Meta removed the Groups API entirely in April 2024, so no app — this one
+  included — can log in and pull group discussions automatically.)
 
 ## First run
 
