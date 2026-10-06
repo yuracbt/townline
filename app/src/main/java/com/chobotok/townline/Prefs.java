@@ -23,6 +23,15 @@ public class Prefs {
     public int getIntervalHours() { return p.getInt("interval_hours", 4); }
     public void setIntervalHours(int h) { p.edit().putInt("interval_hours", h).apply(); }
 
+    /** Scan interval in minutes. Migrates the old hours key on first read. */
+    public int getIntervalMinutes() {
+        if (p.contains("interval_minutes")) return p.getInt("interval_minutes", 240);
+        return Math.max(1, p.getInt("interval_hours", 4)) * 60;
+    }
+    public void setIntervalMinutes(int m) {
+        p.edit().putInt("interval_minutes", Math.max(1, m)).apply();
+    }
+
     public boolean isNotifyEnabled() { return p.getBoolean("notify", true); }
     public void setNotifyEnabled(boolean b) { p.edit().putBoolean("notify", b).apply(); }
 
