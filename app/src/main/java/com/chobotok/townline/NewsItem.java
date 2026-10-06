@@ -10,4 +10,5 @@ public class NewsItem {
     public String description;
     public long pubDate;
     public boolean isNew;
+    public String category;
 }
