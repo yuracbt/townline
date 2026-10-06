@@ -155,7 +155,7 @@ public class NewsDbHelper extends SQLiteOpenHelper {
         Cursor c = getReadableDatabase().rawQuery(
                 "SELECT DISTINCT category FROM items WHERE category IS NOT NULL" +
                 " ORDER BY CASE category" +
-                " WHEN 'Facebook' THEN 0 WHEN 'Events' THEN 1 WHEN 'News' THEN 2" +
+                " WHEN 'Saved' THEN 0 WHEN 'Events' THEN 1 WHEN 'News' THEN 2" +
                 " WHEN 'Community' THEN 3 WHEN 'Business' THEN 4 WHEN 'Calgary' THEN 5" +
                 " ELSE 6 END, category", null);
         while (c.moveToNext()) out.add(c.getString(0));
@@ -250,13 +250,13 @@ public class NewsDbHelper extends SQLiteOpenHelper {
         getWritableDatabase().delete("links", "_id=?", new String[]{String.valueOf(id)});
     }
 
-    // ---------- saved Facebook posts ----------
+    // ---------- saved links (shared into the app) ----------
 
-    public List<NewsItem> getFacebookItems() {
+    public List<NewsItem> getSavedItems() {
         List<NewsItem> out = new ArrayList<>();
         Cursor c = getReadableDatabase().rawQuery(
                 "SELECT _id, title, link, description, pub_date FROM items" +
-                " WHERE category='Facebook' ORDER BY pub_date DESC, _id DESC", null);
+                " WHERE category='Saved' ORDER BY pub_date DESC, _id DESC", null);
         while (c.moveToNext()) {
             NewsItem n = new NewsItem();
             n.id = c.getLong(0);
@@ -264,7 +264,7 @@ public class NewsDbHelper extends SQLiteOpenHelper {
             n.link = c.getString(2);
             n.description = c.getString(3);
             n.pubDate = c.getLong(4);
-            n.category = "Facebook";
+            n.category = "Saved";
             out.add(n);
         }
         c.close();
