@@ -12,6 +12,11 @@ public class App extends Application {
             seedSources();
             prefs.setSeeded();
         }
+        NewsDbHelper db = new NewsDbHelper(this);
+        if (db.getLinksCount() == 0) {
+            seedEventLinks(db);
+        }
+        db.close();
         SyncJobService.schedule(this);
     }
 
@@ -27,5 +32,18 @@ public class App extends Application {
                 true, false);
         db.addSource("Calgary Herald", "https://calgaryherald.com/feed", true, false);
         db.close();
+    }
+
+    private void seedEventLinks(NewsDbHelper db) {
+        db.addLink("events", "Airdrie Chamber — Business Events",
+                "https://www.airdriechamber.ab.ca/events/");
+        db.addLink("events", "City of Airdrie — Community Calendar",
+                "http://www.airdrie.ca/index.cfm?serviceID=667");
+        db.addLink("events", "Airdrie Public Library — Programs",
+                "https://www.yourapl.ca/Programs-and-Events/apl-program-brochure");
+        db.addLink("events", "Airdrie Public Library — Event Bookings",
+                "https://bookings.yourapl.ca/");
+        db.addLink("events", "Eventbrite — Airdrie",
+                "https://www.eventbrite.ca/d/canada--airdrie/events/");
     }
 }
