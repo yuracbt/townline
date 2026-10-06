@@ -70,6 +70,33 @@
             android:backgroundTint="@color/teal"
             android:textColor="#FFFFFF" />
 
+        <LinearLayout
+            android:id="@+id/batteryWarn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:orientation="vertical"
+            android:background="#FFF3E0"
+            android:padding="12dp"
+            android:visibility="gone">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Battery optimization is on — background scans may be delayed or skipped while the app is closed."
+                android:textSize="13sp"
+                android:textColor="@color/ink" />
+
+            <Button
+                android:id="@+id/btnBatterySettings"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="Allow background activity"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="@color/teal" />
+        </LinearLayout>
+
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
