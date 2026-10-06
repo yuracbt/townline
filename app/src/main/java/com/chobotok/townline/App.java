@@ -16,6 +16,9 @@ public class App extends Application {
         if (db.getLinksCount() == 0) {
             seedEventLinks(db);
         }
+        // v1.4: "Facebook" category renamed to the neutral "Saved"
+        db.getWritableDatabase().execSQL(
+                "UPDATE items SET category='Saved' WHERE category='Facebook'");
         // one-time: categorize stories saved before v1.2
         if (!prefs.isRecatV3()) {
             java.util.List<NewsItem> uncat = db.getUncategorized(2000);
