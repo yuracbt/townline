@@ -44,6 +44,29 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Saved posts"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:textColor="@color/teal_dark" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="Posts you shared from Facebook via Share → TownLine."
+            android:textSize="13sp"
+            android:textColor="@color/grey" />
+
+        <ListView
+            android:id="@+id/fbPostsList"
+            android:layout_width="match_parent"
+            android:layout_height="180dp"
+            android:layout_marginTop="8dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
             android:layout_marginTop="28dp"
             android:text="Events &amp; places"
             android:textSize="18sp"
