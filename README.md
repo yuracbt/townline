@@ -23,6 +23,9 @@ notification.
 - **Suggested feeds**: the app checks a curated directory of local-news RSS
   feeds against your town, verifies each one actually works, and lets you
   add them with one tap (Links → Suggested feeds)
+- **Scan near me**: uses your location to detect the town you're in, verifies
+  which local feeds work there, and shows a checklist — tick the ones you
+  want, optionally switch your town, and it scans immediately
 - Background scans every 4 hours (1/2/4/8/12/24h in Settings), re-scheduled
   after reboot; notification when new stories arrive
 - **Categories & filters**: every story is auto-categorized (News, Community,
