@@ -44,12 +44,9 @@ public class FeedDirectory {
         String t = town == null ? "" : town.toLowerCase();
         boolean alberta = t.contains("alberta") || t.contains(", ab") || t.endsWith(" ab");
         try {
-            InputStream in = ctx.getAssets().open(file);
-            byte[] buf = new byte[in.available()];
-            int n = 0, r;
-            while ((r = in.read(buf, n, buf.length - n)) > 0) n += r;
-            in.close();
-            JSONArray arr = new JSONObject(new String(buf, 0, n, "UTF-8")).getJSONArray(key);
+            String json = readAsset(ctx, file);
+            if (json == null) return out;
+            JSONArray arr = new JSONObject(json).getJSONArray(key);
             for (int i = 0; i < arr.length(); i++) {
                 JSONObject f = arr.getJSONObject(i);
                 JSONArray match = f.getJSONArray("match");
@@ -70,6 +67,47 @@ public class FeedDirectory {
         } catch (Exception ignored) {
         }
         return out;
+    }
+
+    /** Total directory entries (feeds + places), unfiltered. 0 means the asset is missing. */
+    public static int totalEntries(Context ctx) {
+        return loadAll(ctx, "feeds_directory.json", "feeds").size()
+                + loadAll(ctx, "places_directory.json", "places").size();
+    }
+
+    private static List<Entry> loadAll(Context ctx, String file, String key) {
+        List<Entry> out = new ArrayList<>();
+        try {
+            String json = readAsset(ctx, file);
+            if (json == null) return out;
+            JSONArray arr = new JSONObject(json).getJSONArray(key);
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject f = arr.getJSONObject(i);
+                Entry e = new Entry();
+                e.name = f.getString("name");
+                e.url = f.getString("url");
+                out.add(e);
+            }
+        } catch (Exception ignored) {
+        }
+        return out;
+    }
+
+    /** Reads a whole asset file. available() is unreliable for compressed APK assets. */
+    private static String readAsset(Context ctx, String file) {
+        InputStream in = null;
+        try {
+            in = ctx.getAssets().open(file);
+            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+            byte[] tmp = new byte[4096];
+            int r;
+            while ((r = in.read(tmp)) != -1) baos.write(tmp, 0, r);
+            return baos.toString("UTF-8");
+        } catch (Exception e) {
+            return null;
+        } finally {
+            try { if (in != null) in.close(); } catch (Exception ignored) { }
+        }
     }
 
     /** True if the URL returns a parseable RSS/Atom feed. Call off the main thread. */
