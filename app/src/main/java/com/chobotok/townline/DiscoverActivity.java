@@ -51,6 +51,8 @@ public class DiscoverActivity extends Activity {
 
         findViewById(R.id.btnAddEvent).setOnClickListener(v ->
                 showAddDialog("Add event page", "https://…"));
+
+        findViewById(R.id.btnScanNearby).setOnClickListener(v -> scanNearby());
     }
 
     @Override
@@ -137,6 +139,212 @@ public class DiscoverActivity extends Activity {
         } catch (Exception e) {
             Toast.makeText(this, "Can't open link", Toast.LENGTH_SHORT).show();
         }
+    }
+
+    // ---------- Scan near me ----------
+
+    private static final int REQ_LOC = 41;
+
+    private void scanNearby() {
+        if (checkSelfPermission(android.Manifest.permission.ACCESS_COARSE_LOCATION)
+                != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(
+                    new String[]{android.Manifest.permission.ACCESS_COARSE_LOCATION}, REQ_LOC);
+            return;
+        }
+        doLocationScan();
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                                           int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQ_LOC) {
+            if (grantResults.length > 0
+                    && grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                doLocationScan();
+            } else {
+                Toast.makeText(this, "Location denied — the town list below still works",
+                        Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
+    private void doLocationScan() {
+        Toast.makeText(this, "Locating…", Toast.LENGTH_SHORT).show();
+        try {
+            android.location.LocationManager lm =
+                    (android.location.LocationManager) getSystemService(LOCATION_SERVICE);
+            android.location.Location best = null;
+            for (String p : lm.getProviders(true)) {
+                try {
+                    android.location.Location l = lm.getLastKnownLocation(p);
+                    if (l != null && (best == null || l.getTime() > best.getTime())) best = l;
+                } catch (SecurityException ignored) { }
+            }
+            if (best != null && System.currentTimeMillis() - best.getTime() < 10 * 60 * 1000) {
+                onLocationFound(best);
+                return;
+            }
+            if (!lm.isProviderEnabled(android.location.LocationManager.NETWORK_PROVIDER)) {
+                if (best != null) {
+                    onLocationFound(best);
+                } else {
+                    Toast.makeText(this, "Location is off — enable it or use the list below",
+                            Toast.LENGTH_LONG).show();
+                }
+                return;
+            }
+            final boolean[] done = {false};
+            android.location.LocationListener ll = new android.location.LocationListener() {
+                @Override
+                public void onLocationChanged(android.location.Location l) {
+                    if (done[0]) return;
+                    done[0] = true;
+                    try { lm.removeUpdates(this); } catch (Exception ignored) { }
+                    onLocationFound(l);
+                }
+                @Override
+                public void onStatusChanged(String p, int s, android.os.Bundle b) { }
+                @Override
+                public void onProviderEnabled(String p) { }
+                @Override
+                public void onProviderDisabled(String p) { }
+            };
+            lm.requestSingleUpdate(
+                    android.location.LocationManager.NETWORK_PROVIDER, ll, null);
+            new android.os.Handler(android.os.Looper.getMainLooper()).postDelayed(() -> {
+                if (done[0]) return;
+                done[0] = true;
+                try { lm.removeUpdates(ll); } catch (Exception ignored) { }
+                android.location.Location l = null;
+                try {
+                    l = lm.getLastKnownLocation(
+                            android.location.LocationManager.NETWORK_PROVIDER);
+                } catch (SecurityException ignored) { }
+                if (l != null) {
+                    onLocationFound(l);
+                } else {
+                    Toast.makeText(DiscoverActivity.this,
+                            "Couldn't get a location fix — try again outside",
+                            Toast.LENGTH_LONG).show();
+                }
+            }, 20000);
+        } catch (Exception e) {
+            Toast.makeText(this, "Location unavailable", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void onLocationFound(android.location.Location loc) {
+        new Thread(() -> {
+            String town = null;
+            try {
+                android.location.Geocoder g = new android.location.Geocoder(
+                        DiscoverActivity.this, java.util.Locale.getDefault());
+                List<android.location.Address> a =
+                        g.getFromLocation(loc.getLatitude(), loc.getLongitude(), 1);
+                if (a != null && !a.isEmpty()) {
+                    android.location.Address ad = a.get(0);
+                    town = ad.getLocality();
+                    if (town == null) town = ad.getSubAdminArea();
+                    if (town == null) town = ad.getAdminArea();
+                }
+            } catch (Exception ignored) { }
+            final String found = town;
+            runOnUiThread(() -> {
+                if (found == null || found.isEmpty()) {
+                    Toast.makeText(this,
+                            "Couldn't determine your town — the list below still works",
+                            Toast.LENGTH_LONG).show();
+                } else {
+                    showNearbyDialog(found);
+                }
+            });
+        }).start();
+    }
+
+    private void showNearbyDialog(final String town) {
+        Toast.makeText(this, "Checking feeds near " + town + "…", Toast.LENGTH_SHORT).show();
+        new Thread(() -> {
+            List<FeedDirectory.Entry> candidates =
+                    FeedDirectory.suggestionsFor(DiscoverActivity.this, town);
+            List<String> have = new ArrayList<>();
+            for (Source s : db.getSources()) have.add(norm(s.url));
+            List<FeedDirectory.Entry> working = new ArrayList<>();
+            for (FeedDirectory.Entry e : candidates) {
+                if (have.contains(norm(e.url))) continue;
+                if (FeedDirectory.isWorkingFeed(e.url)) working.add(e);
+            }
+            final List<FeedDirectory.Entry> result = working;
+            String cur = prefs.getTown();
+            final boolean sameTown =
+                    town.equalsIgnoreCase(cur.split(",")[0].trim()) || cur.equalsIgnoreCase(town);
+            runOnUiThread(() -> buildNearbyDialog(town, result, sameTown));
+        }).start();
+    }
+
+    private void buildNearbyDialog(String town, List<FeedDirectory.Entry> feeds,
+                                   boolean sameTown) {
+        LinearLayout layout = new LinearLayout(this);
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(48, 32, 48, 16);
+
+        TextView head = new TextView(this);
+        head.setText("You appear to be near " + town + ".");
+        head.setTextSize(15);
+        layout.addView(head);
+
+        List<android.widget.CheckBox> boxes = new ArrayList<>();
+        for (FeedDirectory.Entry e : feeds) {
+            android.widget.CheckBox cb = new android.widget.CheckBox(this);
+            cb.setText(e.name);
+            cb.setChecked(true);
+            cb.setTag(e);
+            layout.addView(cb);
+            boxes.add(cb);
+        }
+        android.widget.CheckBox townBox = null;
+        if (!sameTown) {
+            townBox = new android.widget.CheckBox(this);
+            townBox.setText("Use " + town + " as my town");
+            townBox.setChecked(true);
+            layout.addView(townBox);
+        }
+        if (feeds.isEmpty() && sameTown) {
+            TextView t = new TextView(this);
+            t.setText("No new feeds found nearby — your town is already covered.");
+            layout.addView(t);
+        }
+        final android.widget.CheckBox switchBox = townBox;
+
+        android.widget.ScrollView sv = new android.widget.ScrollView(this);
+        sv.addView(layout);
+
+        new AlertDialog.Builder(this)
+                .setTitle("News near " + town)
+                .setView(sv)
+                .setPositiveButton("Add selected", (d, w) -> {
+                    int added = 0;
+                    for (android.widget.CheckBox cb : boxes) {
+                        if (cb.isChecked()) {
+                            FeedDirectory.Entry e = (FeedDirectory.Entry) cb.getTag();
+                            db.addSource(e.name, e.url, true, false);
+                            added++;
+                        }
+                    }
+                    boolean switched = switchBox != null && switchBox.isChecked();
+                    if (switched) prefs.setTown(town);
+                    if (added > 0 || switched) {
+                        SyncJobService.syncNow(this);
+                        Toast.makeText(this,
+                                "Added " + added + " feed(s) — scanning now",
+                                Toast.LENGTH_SHORT).show();
+                    }
+                    reload();
+                    checkSuggestedFeeds();
+                })
+                .setNegativeButton("Cancel", null)
+                .show();
     }
 
     private class SuggestAdapter extends BaseAdapter {
