@@ -11,7 +11,7 @@ import java.util.List;
 
 public class NewsDbHelper extends SQLiteOpenHelper {
     private static final String DB = "townline.db";
-    private static final int VERSION = 2;
+    private static final int VERSION = 3;
 
     public NewsDbHelper(Context c) {
         super(c, DB, null, VERSION);
@@ -24,7 +24,8 @@ public class NewsDbHelper extends SQLiteOpenHelper {
                 " last_sync INTEGER DEFAULT 0, last_error TEXT, last_count INTEGER DEFAULT 0)");
         db.execSQL("CREATE TABLE items (_id INTEGER PRIMARY KEY AUTOINCREMENT," +
                 " source_id INTEGER, guid TEXT UNIQUE, title TEXT, link TEXT," +
-                " description TEXT, pub_date INTEGER, fetched_at INTEGER, is_new INTEGER DEFAULT 1)");
+                " description TEXT, pub_date INTEGER, fetched_at INTEGER, is_new INTEGER DEFAULT 1," +
+                " category TEXT)");
         db.execSQL("CREATE INDEX idx_items_pub ON items(pub_date DESC)");
         db.execSQL("CREATE TABLE IF NOT EXISTS links (_id INTEGER PRIMARY KEY AUTOINCREMENT," +
                 " kind TEXT, name TEXT, url TEXT)");
@@ -35,6 +36,9 @@ public class NewsDbHelper extends SQLiteOpenHelper {
         if (oldV < 2) {
             db.execSQL("CREATE TABLE IF NOT EXISTS links (_id INTEGER PRIMARY KEY AUTOINCREMENT," +
                     " kind TEXT, name TEXT, url TEXT)");
+        }
+        if (oldV < 3) {
+            db.execSQL("ALTER TABLE items ADD COLUMN category TEXT");
         }
     }
 
@@ -90,7 +94,7 @@ public class NewsDbHelper extends SQLiteOpenHelper {
 
     /** @return true if the item was new and inserted */
     public boolean insertItemIfNew(long sourceId, String guid, String title, String link,
-                                   String description, long pubDate) {
+                                   String description, long pubDate, String category) {
         if (guid == null || guid.isEmpty()) guid = link;
         if (guid == null || guid.isEmpty()) return false;
         ContentValues v = new ContentValues();
@@ -102,17 +106,32 @@ public class NewsDbHelper extends SQLiteOpenHelper {
         v.put("pub_date", pubDate);
         v.put("fetched_at", System.currentTimeMillis());
         v.put("is_new", 1);
+        v.put("category", category == null ? "News" : category);
         long row = getWritableDatabase().insertWithOnConflict("items", null, v,
                 SQLiteDatabase.CONFLICT_IGNORE);
         return row != -1;
     }
 
+    /** Backwards-compatible insert (defaults category to News). */
+    public boolean insertItemIfNew(long sourceId, String guid, String title, String link,
+                                   String description, long pubDate) {
+        return insertItemIfNew(sourceId, guid, title, link, description, pubDate, "News");
+    }
+
     public List<NewsItem> getItems(int limit) {
+        return getItems(limit, "All");
+    }
+
+    public List<NewsItem> getItems(int limit, String category) {
         List<NewsItem> out = new ArrayList<>();
+        String where = (category == null || "All".equals(category)) ? ""
+                : " WHERE i.category=?";
+        String[] args = (category == null || "All".equals(category)) ? null
+                : new String[]{category};
         Cursor c = getReadableDatabase().rawQuery(
                 "SELECT i._id, i.source_id, s.name, i.guid, i.title, i.link, i.description," +
-                " i.pub_date, i.is_new FROM items i LEFT JOIN sources s ON s._id=i.source_id" +
-                " ORDER BY i.pub_date DESC, i._id DESC LIMIT " + limit, null);
+                " i.pub_date, i.is_new, i.category FROM items i LEFT JOIN sources s ON s._id=i.source_id" +
+                where + " ORDER BY i.pub_date DESC, i._id DESC LIMIT " + limit, args);
         while (c.moveToNext()) {
             NewsItem n = new NewsItem();
             n.id = c.getLong(0);
@@ -124,10 +143,48 @@ public class NewsDbHelper extends SQLiteOpenHelper {
             n.description = c.getString(6);
             n.pubDate = c.getLong(7);
             n.isNew = c.getInt(8) == 1;
+            n.category = c.getString(9);
             out.add(n);
         }
         c.close();
         return out;
+    }
+
+    public List<String> getCategories() {
+        List<String> out = new ArrayList<>();
+        Cursor c = getReadableDatabase().rawQuery(
+                "SELECT DISTINCT category FROM items WHERE category IS NOT NULL" +
+                " ORDER BY CASE category" +
+                " WHEN 'Facebook' THEN 0 WHEN 'Events' THEN 1 WHEN 'News' THEN 2" +
+                " WHEN 'Community' THEN 3 WHEN 'Business' THEN 4 WHEN 'Calgary' THEN 5" +
+                " ELSE 6 END, category", null);
+        while (c.moveToNext()) out.add(c.getString(0));
+        c.close();
+        return out;
+    }
+
+    public List<NewsItem> getUncategorized(int limit) {
+        List<NewsItem> out = new ArrayList<>();
+        Cursor c = getReadableDatabase().rawQuery(
+                "SELECT i._id, s.name, i.title, i.description FROM items i" +
+                " LEFT JOIN sources s ON s._id=i.source_id" +
+                " WHERE i.category IS NULL LIMIT " + limit, null);
+        while (c.moveToNext()) {
+            NewsItem n = new NewsItem();
+            n.id = c.getLong(0);
+            n.sourceName = c.getString(1);
+            n.title = c.getString(2);
+            n.description = c.getString(3);
+            out.add(n);
+        }
+        c.close();
+        return out;
+    }
+
+    public void setCategory(long itemId, String category) {
+        ContentValues v = new ContentValues();
+        v.put("category", category);
+        getWritableDatabase().update("items", v, "_id=?", new String[]{String.valueOf(itemId)});
     }
 
     public int getNewCount() {
