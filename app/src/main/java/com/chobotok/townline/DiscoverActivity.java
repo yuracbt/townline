@@ -23,6 +23,7 @@ public class DiscoverActivity extends Activity {
     private NewsDbHelper db;
     private LinkAdapter fbAdapter;
     private LinkAdapter eventsAdapter;
+    private PostAdapter fbPostsAdapter;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -34,10 +35,13 @@ public class DiscoverActivity extends Activity {
 
         ListView fbList = findViewById(R.id.fbList);
         ListView eventsList = findViewById(R.id.eventsList);
+        ListView fbPostsList = findViewById(R.id.fbPostsList);
         fbAdapter = new LinkAdapter("fb");
         eventsAdapter = new LinkAdapter("events");
+        fbPostsAdapter = new PostAdapter();
         fbList.setAdapter(fbAdapter);
         eventsList.setAdapter(eventsAdapter);
+        fbPostsList.setAdapter(fbPostsAdapter);
 
         findViewById(R.id.btnAddFb).setOnClickListener(v ->
                 showAddDialog("fb", "Facebook group", "Paste the group's link from Facebook"));
@@ -54,8 +58,10 @@ public class DiscoverActivity extends Activity {
     private void reload() {
         fbAdapter.links = db.getLinks("fb");
         eventsAdapter.links = db.getLinks("events");
+        fbPostsAdapter.posts = db.getFacebookItems();
         fbAdapter.notifyDataSetChanged();
         eventsAdapter.notifyDataSetChanged();
+        fbPostsAdapter.notifyDataSetChanged();
     }
 
     private void showAddDialog(final String kind, String title, String urlHint) {
@@ -88,8 +94,7 @@ public class DiscoverActivity extends Activity {
                 .show();
     }
 
-    private class LinkAdapter extends BaseAdapter {
-        final String kind;
+    private class LinkAdapter extends BaseAdapter {        final String kind;
         List<Link> links = new java.util.ArrayList<>();
 
         LinkAdapter(String kind) { this.kind = kind; }
@@ -114,6 +119,38 @@ public class DiscoverActivity extends Activity {
                 try {
                     Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(l.url));
                     startActivity(i);
+                } catch (Exception e) {
+                    Toast.makeText(DiscoverActivity.this, "Can't open link", Toast.LENGTH_SHORT).show();
+                }
+            });
+            return convertView;
+        }
+    }
+
+    /** Posts saved via Share -> TownLine. Tap to open, X to remove. */
+    private class PostAdapter extends BaseAdapter {
+        List<NewsItem> posts = new java.util.ArrayList<>();
+
+        @Override public int getCount() { return posts.size(); }
+        @Override public Object getItem(int p) { return posts.get(p); }
+        @Override public long getItemId(int p) { return posts.get(p).id; }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            if (convertView == null) {
+                convertView = getLayoutInflater().inflate(R.layout.item_link, parent, false);
+            }
+            final NewsItem n = posts.get(position);
+            ((TextView) convertView.findViewById(R.id.linkName)).setText(n.title);
+            ((TextView) convertView.findViewById(R.id.linkUrl)).setText(n.link);
+            convertView.findViewById(R.id.linkDelete).setOnClickListener(v -> {
+                db.deleteItem(n.id);
+                reload();
+                Toast.makeText(DiscoverActivity.this, "Removed", Toast.LENGTH_SHORT).show();
+            });
+            convertView.setOnClickListener(v -> {
+                try {
+                    startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(n.link)));
                 } catch (Exception e) {
                     Toast.makeText(DiscoverActivity.this, "Can't open link", Toast.LENGTH_SHORT).show();
                 }
