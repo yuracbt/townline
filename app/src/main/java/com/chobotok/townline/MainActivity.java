@@ -79,6 +79,9 @@ public class MainActivity extends Activity {
         findViewById(R.id.btnDiscover).setOnClickListener(v ->
                 startActivity(new Intent(this, DiscoverActivity.class)));
 
+        findViewById(R.id.btnAbout).setOnClickListener(v ->
+                startActivity(new Intent(this, AboutActivity.class)));
+
         // first ever open: kick a scan if the feed is empty
         if (db.getItems(1).isEmpty()) {
             SyncJobService.syncNow(this);
