@@ -68,12 +68,24 @@ public class DiscoverActivity extends Activity {
 
     // ---------- suggested feeds ----------
 
-    /** Verify directory feeds for this town in the background, then show the working ones. */
+    /** Verify directory feeds for the town in the background, then show the working ones. */
     private void checkSuggestedFeeds() {
+        verifyForTown(prefs.getTown(), false);
+    }
+
+    /**
+     * Scan-near-me: same verification, but for the detected town, shown inline
+     * in the Suggested list — no popup. Each row has its own Add button and
+     * added items appear in Events & places right away.
+     */
+    private void verifyForTown(final String town, final boolean isScan) {
         suggestBox.removeAllViews();
+        ((TextView) findViewById(R.id.suggestSubtitle)).setText(
+                isScan ? "Checking feeds near " + town + "…"
+                        : "Checking which local feeds work for " + town + "…");
         new Thread(() -> {
             List<FeedDirectory.Entry> candidates =
-                    FeedDirectory.suggestionsFor(DiscoverActivity.this, prefs.getTown());
+                    FeedDirectory.suggestionsFor(DiscoverActivity.this, town);
             // drop ones already added as sources
             List<String> have = new ArrayList<>();
             for (Source s : db.getSources()) have.add(norm(s.url));
@@ -86,7 +98,7 @@ public class DiscoverActivity extends Activity {
             List<String> haveLinks = new ArrayList<>();
             for (Link l : db.getLinks("events")) haveLinks.add(norm(l.url));
             for (FeedDirectory.Entry p : FeedDirectory.placesFor(
-                    DiscoverActivity.this, prefs.getTown())) {
+                    DiscoverActivity.this, town)) {
                 if (!haveLinks.contains(norm(p.url))) working.add(p);
             }
             final List<FeedDirectory.Entry> result = working;
@@ -94,13 +106,14 @@ public class DiscoverActivity extends Activity {
             runOnUiThread(() -> {
                 renderSuggestions(result);
                 TextView sub = findViewById(R.id.suggestSubtitle);
+                String where = isScan ? "near " + town : "for " + town;
                 if (total == 0) {
                     sub.setText("Feed directory couldn't be loaded — please reinstall the app.");
                 } else if (result.isEmpty()) {
-                    sub.setText("No new feeds found for " + prefs.getTown()
+                    sub.setText("No new feeds found " + where
                             + " — the directory grows with each release.");
                 } else {
-                    sub.setText(result.size() + " suggestion(s) for " + prefs.getTown() + ":");
+                    sub.setText(result.size() + " suggestion(s) " + where + ":");
                 }
             });
         }).start();
@@ -339,125 +352,6 @@ public class DiscoverActivity extends Activity {
 
     private void showNearbyDialog(final String town) {
         Toast.makeText(this, "Checking feeds near " + town + "…", Toast.LENGTH_SHORT).show();
-        new Thread(() -> {
-            List<FeedDirectory.Entry> candidates =
-                    FeedDirectory.suggestionsFor(DiscoverActivity.this, town);
-            List<String> have = new ArrayList<>();
-            for (Source s : db.getSources()) have.add(norm(s.url));
-            List<FeedDirectory.Entry> working = new ArrayList<>();
-            for (FeedDirectory.Entry e : candidates) {
-                if (have.contains(norm(e.url))) continue;
-                if (FeedDirectory.isWorkingFeed(e.url)) working.add(e);
-            }
-            List<String> haveLinks = new ArrayList<>();
-            for (Link l : db.getLinks("events")) haveLinks.add(norm(l.url));
-            List<FeedDirectory.Entry> places = new ArrayList<>();
-            for (FeedDirectory.Entry p : FeedDirectory.placesFor(
-                    DiscoverActivity.this, town)) {
-                if (!haveLinks.contains(norm(p.url))) places.add(p);
-            }
-            final List<FeedDirectory.Entry> result = working;
-            final List<FeedDirectory.Entry> resultPlaces = places;
-            String cur = prefs.getTown();
-            final boolean sameTown =
-                    town.equalsIgnoreCase(cur.split(",")[0].trim()) || cur.equalsIgnoreCase(town);
-            runOnUiThread(() -> buildNearbyDialog(town, result, resultPlaces, sameTown));
-        }).start();
-    }
-
-    private void buildNearbyDialog(String town, List<FeedDirectory.Entry> feeds,
-                                   List<FeedDirectory.Entry> places, boolean sameTown) {
-        LinearLayout layout = new LinearLayout(this);
-        layout.setOrientation(LinearLayout.VERTICAL);
-        layout.setPadding(48, 32, 48, 16);
-
-        TextView head = new TextView(this);
-        head.setText("You appear to be near " + town + ".");
-        head.setTextSize(15);
-        layout.addView(head);
-
-        List<android.widget.CheckBox> boxes = new ArrayList<>();
-        if (!feeds.isEmpty()) {
-            TextView fh = new TextView(this);
-            fh.setText("News feeds");
-            fh.setTextSize(14);
-            fh.setTypeface(null, android.graphics.Typeface.BOLD);
-            fh.setPadding(0, 16, 0, 4);
-            layout.addView(fh);
-        }
-        for (FeedDirectory.Entry e : feeds) {
-            android.widget.CheckBox cb = new android.widget.CheckBox(this);
-            cb.setText(e.name);
-            cb.setChecked(true);
-            cb.setTag(e);
-            layout.addView(cb);
-            boxes.add(cb);
-        }
-        List<android.widget.CheckBox> placeBoxes = new ArrayList<>();
-        if (!places.isEmpty()) {
-            TextView ph = new TextView(this);
-            ph.setText("Event pages & places");
-            ph.setTextSize(14);
-            ph.setTypeface(null, android.graphics.Typeface.BOLD);
-            ph.setPadding(0, 16, 0, 4);
-            layout.addView(ph);
-        }
-        for (FeedDirectory.Entry e : places) {
-            android.widget.CheckBox cb = new android.widget.CheckBox(this);
-            cb.setText(e.name);
-            cb.setChecked(true);
-            cb.setTag(e);
-            layout.addView(cb);
-            placeBoxes.add(cb);
-        }
-        android.widget.CheckBox townBox = null;
-        if (!sameTown) {
-            townBox = new android.widget.CheckBox(this);
-            townBox.setText("Use " + town + " as my town");
-            townBox.setChecked(true);
-            layout.addView(townBox);
-        }
-        if (feeds.isEmpty() && places.isEmpty() && sameTown) {
-            TextView t = new TextView(this);
-            t.setText("No new feeds found nearby — your town is already covered.");
-            layout.addView(t);
-        }
-        final android.widget.CheckBox switchBox = townBox;
-
-        android.widget.ScrollView sv = new android.widget.ScrollView(this);
-        sv.addView(layout);
-
-        new AlertDialog.Builder(this)
-                .setTitle("News near " + town)
-                .setView(sv)
-                .setPositiveButton("Add selected", (d, w) -> {
-                    int added = 0;
-                    for (android.widget.CheckBox cb : boxes) {
-                        if (cb.isChecked()) {
-                            FeedDirectory.Entry e = (FeedDirectory.Entry) cb.getTag();
-                            db.addSource(e.name, e.url, true, false);
-                            added++;
-                        }
-                    }
-                    for (android.widget.CheckBox cb : placeBoxes) {
-                        if (cb.isChecked()) {
-                            FeedDirectory.Entry e = (FeedDirectory.Entry) cb.getTag();
-                            db.addLink("events", e.name, e.url);
-                            added++;
-                        }
-                    }
-                    boolean switched = switchBox != null && switchBox.isChecked();
-                    if (switched) prefs.setTown(town);
-                    if (added > 0 || switched) {
-                        SyncJobService.syncNow(this);
-                        Toast.makeText(this,
-                                "Added " + added + " item(s) — scanning now",
-                                Toast.LENGTH_SHORT).show();
-                    }
-                    reload();
-                    checkSuggestedFeeds();
-                })
-                .setNegativeButton("Cancel", null)
-                .show();
+        verifyForTown(town, true);
     }
 }
