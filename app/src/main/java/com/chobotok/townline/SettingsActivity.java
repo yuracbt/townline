@@ -28,8 +28,10 @@ public class SettingsActivity extends Activity {
     private LinearLayout sourceBox;
 
     private static final String[] INTERVAL_LABELS =
-            {"Every hour", "Every 2 hours", "Every 4 hours", "Every 8 hours", "Every 12 hours", "Every day"};
-    private static final int[] INTERVAL_VALUES = {1, 2, 4, 8, 12, 24};
+            {"Every 5 minutes", "Every 15 minutes", "Every 30 minutes",
+             "Every hour", "Every 2 hours", "Every 4 hours",
+             "Every 8 hours", "Every 12 hours", "Every day"};
+    private static final int[] INTERVAL_VALUES = {5, 15, 30, 60, 120, 240, 480, 720, 1440};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -46,14 +48,13 @@ public class SettingsActivity extends Activity {
                 android.R.layout.simple_spinner_item, INTERVAL_LABELS);
         spinAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinner.setAdapter(spinAdapter);
-        spinner.setSelection(indexOf(prefs.getIntervalHours()));
+        spinner.setSelection(indexOf(prefs.getIntervalMinutes()));
         spinner.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
             boolean first = true;
             @Override public void onItemSelected(android.widget.AdapterView<?> p, View v, int pos, long id) {
                 if (first) { first = false; return; }
-                prefs.setIntervalHours(INTERVAL_VALUES[pos]);
+                prefs.setIntervalMinutes(INTERVAL_VALUES[pos]);
                 SyncJobService.schedule(SettingsActivity.this);
-                refreshAbout();
                 Toast.makeText(SettingsActivity.this, "Scan interval updated", Toast.LENGTH_SHORT).show();
             }
             @Override public void onNothingSelected(android.widget.AdapterView<?> p) {}
@@ -83,7 +84,6 @@ public class SettingsActivity extends Activity {
 
         findViewById(R.id.btnAddSource).setOnClickListener(v -> showAddSourceDialog());
 
-        refreshAbout();
     }
 
     @Override
@@ -148,20 +148,11 @@ public class SettingsActivity extends Activity {
         }
     }
 
-    private int indexOf(int hours) {
+    private int indexOf(int minutes) {
         for (int i = 0; i < INTERVAL_VALUES.length; i++)
-            if (INTERVAL_VALUES[i] == hours) return i;
-        return 2;
+            if (INTERVAL_VALUES[i] == minutes) return i;
+        return 5; // default: every 4 hours
     }
-
-    private void refreshAbout() {
-        TextView about = findViewById(R.id.aboutText);
-        about.setText("TownLine v1.0 — scans run every " + prefs.getIntervalHours()
-                + "h in the background and notify you about new stories.\n" +
-                "Facebook groups can't be scanned automatically (Meta doesn't allow it) — " +
-                "add any public RSS/Atom feed URL above instead.");
-    }
-
     private void showAddSourceDialog() {
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
