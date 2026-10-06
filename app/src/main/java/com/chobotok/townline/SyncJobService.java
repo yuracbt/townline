@@ -98,7 +98,8 @@ public class SyncJobService extends JobService {
                 List<RssParser.Parsed> items = fetch(url);
                 int added = 0;
                 for (RssParser.Parsed p : items) {
-                    if (db.insertItemIfNew(s.id, p.guid, p.title, p.link, p.description, p.pubDate)) {
+                    String cat = Categorizer.categorize(s.name, p.title, p.description);
+                    if (db.insertItemIfNew(s.id, p.guid, p.title, p.link, p.description, p.pubDate, cat)) {
                         added++;
                         totalNew++;
                         if (newTitles.size() < 5) newTitles.add(p.title);
@@ -183,5 +184,29 @@ public class SyncJobService extends JobService {
                 .setAutoCancel(true)
                 .build();
         nm.notify(NOTIF_ID, n);
+    }
+
+    /** Notification for a single story shared into the app (e.g. from Facebook). */
+    public static void notifyShared(Context ctx, String title) {
+        NotificationManager nm = (NotificationManager) ctx.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (nm == null) return;
+        if (Build.VERSION.SDK_INT >= 26) {
+            NotificationChannel ch = new NotificationChannel(CHANNEL_ID,
+                    ctx.getString(R.string.channel_name), NotificationManager.IMPORTANCE_DEFAULT);
+            ch.setDescription(ctx.getString(R.string.channel_desc));
+            nm.createNotificationChannel(ch);
+        }
+        Intent i = new Intent(ctx, MainActivity.class);
+        i.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        PendingIntent pi = PendingIntent.getActivity(ctx, 0, i,
+                PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
+        Notification n = new Notification.Builder(ctx, CHANNEL_ID)
+                .setSmallIcon(R.mipmap.ic_launcher)
+                .setContentTitle("Saved from Facebook")
+                .setContentText(title)
+                .setContentIntent(pi)
+                .setAutoCancel(true)
+                .build();
+        nm.notify(NOTIF_ID + 1, n);
     }
 }
