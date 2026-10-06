@@ -13,8 +13,12 @@ public class App extends Application {
             prefs.setSeeded();
         }
         NewsDbHelper db = new NewsDbHelper(this);
-        if (db.getLinksCount() == 0) {
-            seedEventLinks(db);
+        // seed default event links only once — never re-seed after the user deletes them
+        if (!prefs.isLinksSeeded()) {
+            if (db.getLinksCount() == 0) {
+                seedEventLinks(db);
+            }
+            prefs.setLinksSeeded();
         }
         // v1.4: "Facebook" category renamed to the neutral "Saved"
         db.getWritableDatabase().execSQL(
