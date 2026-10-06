@@ -85,6 +85,13 @@ public class DiscoverActivity extends Activity {
                 if (have.contains(norm(e.url))) continue;
                 if (FeedDirectory.isWorkingFeed(e.url)) working.add(e);
             }
+            // event places for this town that aren't already added as links
+            List<String> haveLinks = new ArrayList<>();
+            for (Link l : db.getLinks("events")) haveLinks.add(norm(l.url));
+            for (FeedDirectory.Entry p : FeedDirectory.placesFor(
+                    DiscoverActivity.this, prefs.getTown())) {
+                if (!haveLinks.contains(norm(p.url))) working.add(p);
+            }
             final List<FeedDirectory.Entry> result = working;
             runOnUiThread(() -> {
                 suggestAdapter.state = SuggestAdapter.DONE;
@@ -93,7 +100,7 @@ public class DiscoverActivity extends Activity {
                 ((TextView) findViewById(R.id.suggestSubtitle)).setText(result.isEmpty()
                         ? "No new feeds found for " + prefs.getTown()
                                 + " — the directory grows with each release."
-                        : result.size() + " working local feed(s) for " + prefs.getTown() + ":");
+                        : result.size() + " suggestion(s) for " + prefs.getTown() + ":");
             });
         }).start();
     }
@@ -275,16 +282,24 @@ public class DiscoverActivity extends Activity {
                 if (have.contains(norm(e.url))) continue;
                 if (FeedDirectory.isWorkingFeed(e.url)) working.add(e);
             }
+            List<String> haveLinks = new ArrayList<>();
+            for (Link l : db.getLinks("events")) haveLinks.add(norm(l.url));
+            List<FeedDirectory.Entry> places = new ArrayList<>();
+            for (FeedDirectory.Entry p : FeedDirectory.placesFor(
+                    DiscoverActivity.this, town)) {
+                if (!haveLinks.contains(norm(p.url))) places.add(p);
+            }
             final List<FeedDirectory.Entry> result = working;
+            final List<FeedDirectory.Entry> resultPlaces = places;
             String cur = prefs.getTown();
             final boolean sameTown =
                     town.equalsIgnoreCase(cur.split(",")[0].trim()) || cur.equalsIgnoreCase(town);
-            runOnUiThread(() -> buildNearbyDialog(town, result, sameTown));
+            runOnUiThread(() -> buildNearbyDialog(town, result, resultPlaces, sameTown));
         }).start();
     }
 
     private void buildNearbyDialog(String town, List<FeedDirectory.Entry> feeds,
-                                   boolean sameTown) {
+                                   List<FeedDirectory.Entry> places, boolean sameTown) {
         LinearLayout layout = new LinearLayout(this);
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setPadding(48, 32, 48, 16);
@@ -295,6 +310,14 @@ public class DiscoverActivity extends Activity {
         layout.addView(head);
 
         List<android.widget.CheckBox> boxes = new ArrayList<>();
+        if (!feeds.isEmpty()) {
+            TextView fh = new TextView(this);
+            fh.setText("News feeds");
+            fh.setTextSize(14);
+            fh.setTypeface(null, android.graphics.Typeface.BOLD);
+            fh.setPadding(0, 16, 0, 4);
+            layout.addView(fh);
+        }
         for (FeedDirectory.Entry e : feeds) {
             android.widget.CheckBox cb = new android.widget.CheckBox(this);
             cb.setText(e.name);
@@ -303,6 +326,23 @@ public class DiscoverActivity extends Activity {
             layout.addView(cb);
             boxes.add(cb);
         }
+        List<android.widget.CheckBox> placeBoxes = new ArrayList<>();
+        if (!places.isEmpty()) {
+            TextView ph = new TextView(this);
+            ph.setText("Event pages & places");
+            ph.setTextSize(14);
+            ph.setTypeface(null, android.graphics.Typeface.BOLD);
+            ph.setPadding(0, 16, 0, 4);
+            layout.addView(ph);
+        }
+        for (FeedDirectory.Entry e : places) {
+            android.widget.CheckBox cb = new android.widget.CheckBox(this);
+            cb.setText(e.name);
+            cb.setChecked(true);
+            cb.setTag(e);
+            layout.addView(cb);
+            placeBoxes.add(cb);
+        }
         android.widget.CheckBox townBox = null;
         if (!sameTown) {
             townBox = new android.widget.CheckBox(this);
@@ -310,7 +350,7 @@ public class DiscoverActivity extends Activity {
             townBox.setChecked(true);
             layout.addView(townBox);
         }
-        if (feeds.isEmpty() && sameTown) {
+        if (feeds.isEmpty() && places.isEmpty() && sameTown) {
             TextView t = new TextView(this);
             t.setText("No new feeds found nearby — your town is already covered.");
             layout.addView(t);
@@ -332,12 +372,19 @@ public class DiscoverActivity extends Activity {
                             added++;
                         }
                     }
+                    for (android.widget.CheckBox cb : placeBoxes) {
+                        if (cb.isChecked()) {
+                            FeedDirectory.Entry e = (FeedDirectory.Entry) cb.getTag();
+                            db.addLink("events", e.name, e.url);
+                            added++;
+                        }
+                    }
                     boolean switched = switchBox != null && switchBox.isChecked();
                     if (switched) prefs.setTown(town);
                     if (added > 0 || switched) {
                         SyncJobService.syncNow(this);
                         Toast.makeText(this,
-                                "Added " + added + " feed(s) — scanning now",
+                                "Added " + added + " item(s) — scanning now",
                                 Toast.LENGTH_SHORT).show();
                     }
                     reload();
@@ -371,7 +418,11 @@ public class DiscoverActivity extends Activity {
             add.setText(done ? "✓" : "Add");
             add.setEnabled(!done);
             add.setOnClickListener(v -> {
-                db.addSource(e.name, e.url, true, false);
+                if ("place".equals(e.kind)) {
+                    db.addLink("events", e.name, e.url);
+                } else {
+                    db.addSource(e.name, e.url, true, false);
+                }
                 added.add(norm(e.url));
                 notifyDataSetChanged();
                 Toast.makeText(DiscoverActivity.this,
