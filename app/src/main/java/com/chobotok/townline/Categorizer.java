@@ -16,7 +16,7 @@ public class Categorizer {
     };
 
     public static String categorize(String sourceName, String title, String description) {
-        if ("Facebook".equals(sourceName)) return "Facebook";
+        if ("Saved".equals(sourceName)) return "Saved";
         String t = ((title == null ? "" : title) + " " + (description == null ? "" : description))
                 .toLowerCase();
         if (containsAny(t, EVENT_WORDS)) return "Events";
