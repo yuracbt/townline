@@ -6,26 +6,29 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.BaseAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.LinearLayout;
-import android.widget.ListView;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
-/** Discover: suggested local feeds, event pages, saved links. Opens in your browser. */
+/**
+ * Discover: suggested local feeds, event pages, saved links. Opens in your browser.
+ * Lists are plain LinearLayouts (not nested ListViews) so the whole page scrolls.
+ */
 public class DiscoverActivity extends Activity {
 
     private NewsDbHelper db;
     private Prefs prefs;
-    private LinkAdapter eventsAdapter;
-    private PostAdapter savedAdapter;
-    private SuggestAdapter suggestAdapter;
+    private LinearLayout suggestBox;
+    private LinearLayout eventsBox;
+    private LinearLayout savedBox;
+    private final Set<String> suggestAdded = new HashSet<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -36,15 +39,9 @@ public class DiscoverActivity extends Activity {
         db = new NewsDbHelper(this);
         prefs = new Prefs(this);
 
-        ListView suggestList = findViewById(R.id.suggestList);
-        ListView eventsList = findViewById(R.id.eventsList);
-        ListView savedList = findViewById(R.id.savedList);
-        suggestAdapter = new SuggestAdapter();
-        eventsAdapter = new LinkAdapter();
-        savedAdapter = new PostAdapter();
-        suggestList.setAdapter(suggestAdapter);
-        eventsList.setAdapter(eventsAdapter);
-        savedList.setAdapter(savedAdapter);
+        suggestBox = findViewById(R.id.suggestList);
+        eventsBox = findViewById(R.id.eventsList);
+        savedBox = findViewById(R.id.savedList);
 
         ((TextView) findViewById(R.id.suggestSubtitle)).setText(
                 "Checking which local feeds work for " + prefs.getTown() + "…");
@@ -65,17 +62,15 @@ public class DiscoverActivity extends Activity {
     }
 
     private void reload() {
-        eventsAdapter.links = db.getLinks("events");
-        savedAdapter.posts = db.getSavedItems();
-        eventsAdapter.notifyDataSetChanged();
-        savedAdapter.notifyDataSetChanged();
+        renderEvents();
+        renderSaved();
     }
+
+    // ---------- suggested feeds ----------
 
     /** Verify directory feeds for this town in the background, then show the working ones. */
     private void checkSuggestedFeeds() {
-        suggestAdapter.state = SuggestAdapter.CHECKING;
-        suggestAdapter.entries = new ArrayList<>();
-        suggestAdapter.notifyDataSetChanged();
+        suggestBox.removeAllViews();
         new Thread(() -> {
             List<FeedDirectory.Entry> candidates =
                     FeedDirectory.suggestionsFor(DiscoverActivity.this, prefs.getTown());
@@ -97,9 +92,7 @@ public class DiscoverActivity extends Activity {
             final List<FeedDirectory.Entry> result = working;
             final int total = FeedDirectory.totalEntries(DiscoverActivity.this);
             runOnUiThread(() -> {
-                suggestAdapter.state = SuggestAdapter.DONE;
-                suggestAdapter.entries = result;
-                suggestAdapter.notifyDataSetChanged();
+                renderSuggestions(result);
                 TextView sub = findViewById(R.id.suggestSubtitle);
                 if (total == 0) {
                     sub.setText("Feed directory couldn't be loaded — please reinstall the app.");
@@ -111,6 +104,72 @@ public class DiscoverActivity extends Activity {
                 }
             });
         }).start();
+    }
+
+    private void renderSuggestions(List<FeedDirectory.Entry> entries) {
+        suggestBox.removeAllViews();
+        for (FeedDirectory.Entry e : entries) {
+            View row = getLayoutInflater().inflate(R.layout.item_suggest, suggestBox, false);
+            ((TextView) row.findViewById(R.id.suggestName)).setText(e.name);
+            ((TextView) row.findViewById(R.id.suggestUrl)).setText(e.url);
+            Button add = row.findViewById(R.id.suggestAdd);
+            boolean done = suggestAdded.contains(norm(e.url));
+            add.setText(done ? "✓" : "Add");
+            add.setEnabled(!done);
+            add.setOnClickListener(v -> {
+                if ("place".equals(e.kind)) {
+                    db.addLink("events", e.name, e.url);
+                } else {
+                    db.addSource(e.name, e.url, true, false);
+                    SyncJobService.syncNow(DiscoverActivity.this);
+                }
+                suggestAdded.add(norm(e.url));
+                add.setText("✓");
+                add.setEnabled(false);
+                renderEvents();
+                Toast.makeText(DiscoverActivity.this,
+                        "place".equals(e.kind) ? "Added to Events & places"
+                                : "Added — scanning now",
+                        Toast.LENGTH_SHORT).show();
+            });
+            suggestBox.addView(row);
+        }
+    }
+
+    // ---------- event links ----------
+
+    private void renderEvents() {
+        eventsBox.removeAllViews();
+        for (Link l : db.getLinks("events")) {
+            View row = getLayoutInflater().inflate(R.layout.item_link, eventsBox, false);
+            ((TextView) row.findViewById(R.id.linkName)).setText(l.name);
+            ((TextView) row.findViewById(R.id.linkUrl)).setText(l.url);
+            row.findViewById(R.id.linkDelete).setOnClickListener(v -> {
+                db.deleteLink(l.id);
+                renderEvents();
+            });
+            row.setOnClickListener(v -> openExternal(l.url));
+            eventsBox.addView(row);
+        }
+    }
+
+    // ---------- saved links ----------
+
+    /** Links saved via Share -> TownLine. Tap to open, X to remove. */
+    private void renderSaved() {
+        savedBox.removeAllViews();
+        for (NewsItem n : db.getSavedItems()) {
+            View row = getLayoutInflater().inflate(R.layout.item_link, savedBox, false);
+            ((TextView) row.findViewById(R.id.linkName)).setText(n.title);
+            ((TextView) row.findViewById(R.id.linkUrl)).setText(n.link);
+            row.findViewById(R.id.linkDelete).setOnClickListener(v -> {
+                db.deleteItem(n.id);
+                renderSaved();
+                Toast.makeText(DiscoverActivity.this, "Removed", Toast.LENGTH_SHORT).show();
+            });
+            row.setOnClickListener(v -> openExternal(n.link));
+            savedBox.addView(row);
+        }
     }
 
     private static String norm(String u) {
@@ -142,7 +201,7 @@ public class DiscoverActivity extends Activity {
                         return;
                     }
                     db.addLink("events", name, url);
-                    reload();
+                    renderEvents();
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
@@ -400,96 +459,5 @@ public class DiscoverActivity extends Activity {
                 })
                 .setNegativeButton("Cancel", null)
                 .show();
-    }
-
-    private class SuggestAdapter extends BaseAdapter {
-        static final int CHECKING = 0;
-        static final int DONE = 1;
-        int state = CHECKING;
-        List<FeedDirectory.Entry> entries = new ArrayList<>();
-        final List<String> added = new ArrayList<>();
-
-        @Override public int getCount() { return state == CHECKING ? 0 : entries.size(); }
-        @Override public Object getItem(int p) { return entries.get(p); }
-        @Override public long getItemId(int p) { return p; }
-
-        @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
-            if (convertView == null) {
-                convertView = getLayoutInflater().inflate(R.layout.item_suggest, parent, false);
-            }
-            final FeedDirectory.Entry e = entries.get(position);
-            ((TextView) convertView.findViewById(R.id.suggestName)).setText(e.name);
-            ((TextView) convertView.findViewById(R.id.suggestUrl)).setText(e.url);
-            Button add = convertView.findViewById(R.id.suggestAdd);
-            boolean done = added.contains(norm(e.url));
-            add.setText(done ? "✓" : "Add");
-            add.setEnabled(!done);
-            add.setOnClickListener(v -> {
-                if ("place".equals(e.kind)) {
-                    db.addLink("events", e.name, e.url);
-                } else {
-                    db.addSource(e.name, e.url, true, false);
-                    SyncJobService.syncNow(DiscoverActivity.this);
-                }
-                added.add(norm(e.url));
-                notifyDataSetChanged();
-                Toast.makeText(DiscoverActivity.this,
-                        "place".equals(e.kind) ? "Added to Events & places"
-                                : "Added — scanning now",
-                        Toast.LENGTH_SHORT).show();
-            });
-            return convertView;
-        }
-    }
-
-    private class LinkAdapter extends BaseAdapter {
-        List<Link> links = new ArrayList<>();
-
-        @Override public int getCount() { return links.size(); }
-        @Override public Object getItem(int p) { return links.get(p); }
-        @Override public long getItemId(int p) { return links.get(p).id; }
-
-        @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
-            if (convertView == null) {
-                convertView = getLayoutInflater().inflate(R.layout.item_link, parent, false);
-            }
-            final Link l = links.get(position);
-            ((TextView) convertView.findViewById(R.id.linkName)).setText(l.name);
-            ((TextView) convertView.findViewById(R.id.linkUrl)).setText(l.url);
-            convertView.findViewById(R.id.linkDelete).setOnClickListener(v -> {
-                db.deleteLink(l.id);
-                reload();
-            });
-            convertView.setOnClickListener(v -> openExternal(l.url));
-            return convertView;
-        }
-    }
-
-    /** Links saved via Share -> TownLine. Tap to open, X to remove. */
-    private class PostAdapter extends BaseAdapter {
-        List<NewsItem> posts = new ArrayList<>();
-
-        @Override public int getCount() { return posts.size(); }
-        @Override public Object getItem(int p) { return posts.get(p); }
-        @Override public long getItemId(int p) { return posts.get(p).id; }
-
-        @Override
-        public View getView(int position, View convertView, ViewGroup parent) {
-            if (convertView == null) {
-                convertView = getLayoutInflater().inflate(R.layout.item_link, parent, false);
-            }
-            final NewsItem n = posts.get(position);
-            ((TextView) convertView.findViewById(R.id.linkName)).setText(n.title);
-            ((TextView) convertView.findViewById(R.id.linkUrl)).setText(n.link);
-            convertView.findViewById(R.id.linkDelete).setOnClickListener(v -> {
-                db.deleteItem(n.id);
-                reload();
-                Toast.makeText(DiscoverActivity.this, "Removed", Toast.LENGTH_SHORT).show();
-            });
-            convertView.setOnClickListener(v -> openExternal(n.link));
-            return convertView;
-        }
     }
 }
