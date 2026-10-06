@@ -14,6 +14,7 @@ public class ArticleActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_article);
+        findViewById(R.id.btnBack).setOnClickListener(v -> finish());
         String title = getIntent().getStringExtra("title");
         if (title != null) setTitle(title);
 
