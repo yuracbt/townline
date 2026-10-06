@@ -26,6 +26,8 @@ notification.
   Events, Business, Calgary, Facebook) — tap a chip to filter the line
 - **Share to TownLine**: from the Facebook app, Share → TownLine on any group
   post and it lands in your line under Facebook, with a notification.
+  Saved posts are listed under Discover → My Facebook groups → Saved posts,
+  where you can open or remove them.
   (Meta removed the Groups API entirely in April 2024, so no app — this one
   included — can log in and pull group discussions automatically.)
 
