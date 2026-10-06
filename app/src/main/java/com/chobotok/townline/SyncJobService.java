@@ -202,7 +202,7 @@ public class SyncJobService extends JobService {
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         Notification n = new Notification.Builder(ctx, CHANNEL_ID)
                 .setSmallIcon(R.mipmap.ic_launcher)
-                .setContentTitle("Saved from Facebook")
+                .setContentTitle("Saved to TownLine")
                 .setContentText(title)
                 .setContentIntent(pi)
                 .setAutoCancel(true)
