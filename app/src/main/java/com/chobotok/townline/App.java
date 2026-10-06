@@ -16,6 +16,14 @@ public class App extends Application {
         if (db.getLinksCount() == 0) {
             seedEventLinks(db);
         }
+        // one-time: categorize stories saved before v1.2
+        if (!prefs.isRecatV3()) {
+            java.util.List<NewsItem> uncat = db.getUncategorized(2000);
+            for (NewsItem n : uncat) {
+                db.setCategory(n.id, Categorizer.categorize(n.sourceName, n.title, n.description));
+            }
+            prefs.setRecatV3();
+        }
         db.close();
         SyncJobService.schedule(this);
     }
