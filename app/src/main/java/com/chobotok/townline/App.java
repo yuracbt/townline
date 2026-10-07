@@ -27,7 +27,7 @@ public class App extends Application {
         if (!prefs.isRecatV3()) {
             java.util.List<NewsItem> uncat = db.getUncategorized(2000);
             for (NewsItem n : uncat) {
-                db.setCategory(n.id, Categorizer.categorize(n.sourceName, n.title, n.description));
+                db.setCategory(n.id, Categorizer.categorize(n.sourceName, n.sourceUrl, n.title, n.description));
             }
             prefs.setRecatV3();
         }
