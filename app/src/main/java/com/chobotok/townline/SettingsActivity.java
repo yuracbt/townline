@@ -84,6 +84,79 @@ public class SettingsActivity extends Activity {
 
         findViewById(R.id.btnAddSource).setOnClickListener(v -> showAddSourceDialog());
 
+        findViewById(R.id.btnExportConfig).setOnClickListener(v -> exportConfig());
+        findViewById(R.id.btnImportConfig).setOnClickListener(v -> {
+            Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+            i.addCategory(Intent.CATEGORY_OPENABLE);
+            i.setType("text/*");
+            try {
+                startActivityForResult(i, REQ_IMPORT);
+            } catch (Exception e) {
+                Toast.makeText(this, "No file picker found", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+    }
+
+    private static final int REQ_IMPORT = 41;
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQ_IMPORT && resultCode == RESULT_OK
+                && data != null && data.getData() != null) {
+            try (java.io.InputStream in =
+                         getContentResolver().openInputStream(data.getData());
+                 java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream()) {
+                byte[] buf = new byte[8192];
+                int n;
+                while ((n = in.read(buf)) > 0) bos.write(buf, 0, n);
+                ConfigBackup.Result r =
+                        ConfigBackup.importCsv(bos.toString("UTF-8"), prefs, db);
+                if (r.settingsApplied) SyncJobService.schedule(this);
+                int dupes = r.feedsSkipped + r.eventsSkipped;
+                Toast.makeText(this,
+                        "Imported " + r.feedsAdded + " feed(s), " + r.eventsAdded
+                                + " event page(s)"
+                                + (dupes > 0 ? " — " + dupes + " already there" : "")
+                                + (r.settingsApplied ? " — settings restored" : ""),
+                        Toast.LENGTH_LONG).show();
+                reloadSources();
+            } catch (Exception e) {
+                Toast.makeText(this, "Import failed: " + e.getMessage(),
+                        Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
+    /** Writes the configuration CSV to Downloads (or app storage on old Android). */
+    private void exportConfig() {
+        String csv = ConfigBackup.exportCsv(prefs, db);
+        String name = "townline-config.csv";
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= 29) {
+                android.content.ContentValues v = new android.content.ContentValues();
+                v.put(android.provider.MediaStore.Downloads.DISPLAY_NAME, name);
+                v.put(android.provider.MediaStore.Downloads.MIME_TYPE, "text/csv");
+                v.put(android.provider.MediaStore.Downloads.RELATIVE_PATH,
+                        android.os.Environment.DIRECTORY_DOWNLOADS);
+                android.net.Uri uri = getContentResolver().insert(
+                        android.provider.MediaStore.Downloads.EXTERNAL_CONTENT_URI, v);
+                if (uri == null) throw new Exception("could not create file");
+                try (java.io.OutputStream os = getContentResolver().openOutputStream(uri)) {
+                    os.write(csv.getBytes("UTF-8"));
+                }
+                Toast.makeText(this, "Saved to Downloads/" + name, Toast.LENGTH_LONG).show();
+            } else {
+                java.io.File f = new java.io.File(getExternalFilesDir(null), name);
+                try (java.io.FileOutputStream fos = new java.io.FileOutputStream(f)) {
+                    fos.write(csv.getBytes("UTF-8"));
+                }
+                Toast.makeText(this, "Saved to " + f.getAbsolutePath(), Toast.LENGTH_LONG).show();
+            }
+        } catch (Exception e) {
+            Toast.makeText(this, "Export failed: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
     }
 
     @Override
