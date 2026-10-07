@@ -176,10 +176,14 @@ public class SyncJobService extends JobService {
 
     private boolean notificationsAllowed() {
         if (Build.VERSION.SDK_INT >= 33) {
-            return checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
-                    == PackageManager.PERMISSION_GRANTED;
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+                    != PackageManager.PERMISSION_GRANTED) {
+                return false;
+            }
         }
-        return true;
+        NotificationManager nm =
+                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        return nm == null || nm.areNotificationsEnabled();
     }
 
     private void postNotification(int count, List<String> titles) {
