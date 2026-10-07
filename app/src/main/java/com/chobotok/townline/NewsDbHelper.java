@@ -168,34 +168,36 @@ public class NewsDbHelper extends SQLiteOpenHelper {
     public List<NewsItem> getUncategorized(int limit) {
         List<NewsItem> out = new ArrayList<>();
         Cursor c = getReadableDatabase().rawQuery(
-                "SELECT i._id, s.name, i.title, i.description FROM items i" +
+                "SELECT i._id, s.name, s.url, i.title, i.description FROM items i" +
                 " LEFT JOIN sources s ON s._id=i.source_id" +
                 " WHERE i.category IS NULL LIMIT " + limit, null);
         while (c.moveToNext()) {
             NewsItem n = new NewsItem();
             n.id = c.getLong(0);
             n.sourceName = c.getString(1);
-            n.title = c.getString(2);
-            n.description = c.getString(3);
+            n.sourceUrl = c.getString(2);
+            n.title = c.getString(3);
+            n.description = c.getString(4);
             out.add(n);
         }
         c.close();
         return out;
     }
 
-    /** Every story with its source name and current category — for on-demand recategorization. */
+    /** Every story with its source name, URL and current category — for on-demand recategorization. */
     public List<NewsItem> getAllForRecategorize() {
         List<NewsItem> out = new ArrayList<>();
         Cursor c = getReadableDatabase().rawQuery(
-                "SELECT i._id, s.name, i.title, i.description, i.category FROM items i" +
+                "SELECT i._id, s.name, s.url, i.title, i.description, i.category FROM items i" +
                 " LEFT JOIN sources s ON s._id=i.source_id", null);
         while (c.moveToNext()) {
             NewsItem n = new NewsItem();
             n.id = c.getLong(0);
             n.sourceName = c.getString(1);
-            n.title = c.getString(2);
-            n.description = c.getString(3);
-            n.category = c.getString(4);
+            n.sourceUrl = c.getString(2);
+            n.title = c.getString(3);
+            n.description = c.getString(4);
+            n.category = c.getString(5);
             out.add(n);
         }
         c.close();
