@@ -124,7 +124,7 @@ public class SyncJobService extends JobService {
                 List<RssParser.Parsed> items = fetch(url);
                 int added = 0;
                 for (RssParser.Parsed p : items) {
-                    String cat = Categorizer.categorize(s.name, p.title, p.description);
+                    String cat = Categorizer.categorize(s.name, s.url, p.title, p.description);
                     if (db.insertItemIfNew(s.id, p.guid, p.title, p.link, p.description, p.pubDate, cat)) {
                         added++;
                         totalNew++;
