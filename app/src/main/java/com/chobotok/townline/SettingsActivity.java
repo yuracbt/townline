@@ -3,6 +3,7 @@ package com.chobotok.townline;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.view.View;
 import android.view.ViewGroup;
@@ -62,7 +63,13 @@ public class SettingsActivity extends Activity {
 
         Switch notifySwitch = findViewById(R.id.notifySwitch);
         notifySwitch.setChecked(prefs.isNotifyEnabled());
-        notifySwitch.setOnCheckedChangeListener((b, checked) -> prefs.setNotifyEnabled(checked));
+        notifySwitch.setOnCheckedChangeListener((b, checked) -> {
+            prefs.setNotifyEnabled(checked);
+            if (checked && !NotifPerms.canNotify(SettingsActivity.this)) {
+                // User wants notifications — make sure Android will actually deliver them.
+                NotifPerms.request(SettingsActivity.this, REQ_NOTIF);
+            }
+        });
 
         findViewById(R.id.btnSyncNow).setOnClickListener(v -> {
             SyncJobService.syncNow(SettingsActivity.this);
@@ -113,6 +120,25 @@ public class SettingsActivity extends Activity {
     }
 
     private static final int REQ_IMPORT = 41;
+    private static final int REQ_NOTIF = 42;
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                                           int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == REQ_NOTIF) {
+            boolean granted = grantResults.length > 0
+                    && grantResults[0] == PackageManager.PERMISSION_GRANTED;
+            if (!granted) {
+                // Denied: offer the settings jump; if they pass, switch back off.
+                Switch sw = findViewById(R.id.notifySwitch);
+                NotifPerms.showDeniedDialog(this, () -> {
+                    prefs.setNotifyEnabled(false);
+                    sw.setChecked(false);
+                });
+            }
+        }
+    }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
