@@ -4,6 +4,7 @@ public class NewsItem {
     public long id;
     public long sourceId;
     public String sourceName;
+    public String sourceUrl;
     public String guid;
     public String title;
     public String link;
