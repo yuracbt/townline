@@ -155,9 +155,11 @@ public class NewsDbHelper extends SQLiteOpenHelper {
         Cursor c = getReadableDatabase().rawQuery(
                 "SELECT DISTINCT category FROM items WHERE category IS NOT NULL" +
                 " ORDER BY CASE category" +
-                " WHEN 'Saved' THEN 0 WHEN 'Events' THEN 1 WHEN 'News' THEN 2" +
-                " WHEN 'Community' THEN 3 WHEN 'Business' THEN 4 WHEN 'Calgary' THEN 5" +
-                " ELSE 6 END, category", null);
+                " WHEN 'Saved' THEN 0 WHEN 'Ukraine' THEN 1 WHEN 'Alberta' THEN 2" +
+                " WHEN 'Calgary' THEN 3 WHEN 'Edmonton' THEN 4 WHEN 'Business' THEN 5" +
+                " WHEN 'Sport' THEN 6 WHEN 'Events' THEN 7 WHEN 'Community' THEN 8" +
+                " WHEN 'News' THEN 9" +
+                " ELSE 10 END, category", null);
         while (c.moveToNext()) out.add(c.getString(0));
         c.close();
         return out;
@@ -175,6 +177,25 @@ public class NewsDbHelper extends SQLiteOpenHelper {
             n.sourceName = c.getString(1);
             n.title = c.getString(2);
             n.description = c.getString(3);
+            out.add(n);
+        }
+        c.close();
+        return out;
+    }
+
+    /** Every story with its source name and current category — for on-demand recategorization. */
+    public List<NewsItem> getAllForRecategorize() {
+        List<NewsItem> out = new ArrayList<>();
+        Cursor c = getReadableDatabase().rawQuery(
+                "SELECT i._id, s.name, i.title, i.description, i.category FROM items i" +
+                " LEFT JOIN sources s ON s._id=i.source_id", null);
+        while (c.moveToNext()) {
+            NewsItem n = new NewsItem();
+            n.id = c.getLong(0);
+            n.sourceName = c.getString(1);
+            n.title = c.getString(2);
+            n.description = c.getString(3);
+            n.category = c.getString(4);
             out.add(n);
         }
         c.close();
