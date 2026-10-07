@@ -18,6 +18,10 @@ public class Categorizer {
 
     private static final String[] UKRAINE_SRC = {"ukrain", "pravda", "kyiv"};
 
+    /** Ukrainian outlets recognizable by domain alone, whatever the feed is named. */
+    private static final String[] UKRAINE_URL =
+            {"pravda", "ukrinform", "kyivindependent", "kyivpost", ".ua/"};
+
     private static final String[] BUSINESS_SRC =
             {"business", "chamber", "economic", "trade"};
 
@@ -79,13 +83,16 @@ public class Categorizer {
 
     /**
      * Category for one story. A feed's own beat (Ukraine, Business, Sport,
-     * Community) wins first; then what the story is actually about —
-     * specific cities get their own shelf, the rest of Alberta shares one;
-     * the feed's home town is the fallback.
+     * Community) wins first; the feed's URL gets a vote too (a pravda.com.ua
+     * feed is Ukraine no matter what you named it); then what the story is
+     * actually about — specific cities get their own shelf, the rest of
+     * Alberta shares one; the feed's home town is the fallback.
      */
-    public static String categorize(String sourceName, String title, String description) {
+    public static String categorize(String sourceName, String sourceUrl,
+                                    String title, String description) {
         if ("Saved".equals(sourceName)) return "Saved";
         String s = lower(sourceName);
+        String u = lower(sourceUrl);
         String t = lower(title) + " " + lower(description);
 
         // 1. the feed's own beat
@@ -94,22 +101,43 @@ public class Categorizer {
         if (containsAny(s, SPORT_SRC)) return "Sport";
         if (containsAny(s, COMMUNITY_SRC)) return "Community";
 
-        // 2. what the story is about: topics, then places
+        // 2. the feed's URL speaks when the name doesn't
+        if (containsAny(u, UKRAINE_URL)) return "Ukraine";
+
+        // 3. what the story is about: topics, then places
         if (containsAny(t, UKRAINE_WORDS)) return "Ukraine";
         if (t.contains("calgary")) return "Calgary";
         if (t.contains("edmonton")) return "Edmonton";
         if (t.contains("alberta") || matchCity(t) != null) return "Alberta";
 
-        // 3. the feed's home town as fallback
-        String city = matchCity(s);
+        // 4. the feed's home town as fallback (URL first, then name)
+        String city = matchCity(u);
+        if (city == null) city = matchCity(s);
         if (city != null) return city;
 
-        // 4. general story topics
+        // 5. general story topics
         if (containsAny(t, EVENT_WORDS)) return "Events";
         if (containsAny(t, BUSINESS_WORDS)) return "Business";
         if (containsAny(t, SPORT_WORDS)) return "Sport";
         if (containsAny(t, COMMUNITY_WORDS)) return "Community";
         return "News";
+    }
+
+    /**
+     * What the app thinks a source is about, from its name and URL alone —
+     * shown next to each feed in Settings so the thinking is visible.
+     */
+    public static String thinkSource(String sourceName, String sourceUrl) {
+        if ("Saved".equals(sourceName)) return "Saved";
+        String s = lower(sourceName);
+        String u = lower(sourceUrl);
+        if (containsAny(s, UKRAINE_SRC) || containsAny(u, UKRAINE_URL)) return "Ukraine";
+        if (containsAny(s, BUSINESS_SRC)) return "Business";
+        if (containsAny(s, SPORT_SRC)) return "Sport";
+        if (containsAny(s, COMMUNITY_SRC)) return "Community";
+        String city = matchCity(u);
+        if (city == null) city = matchCity(s);
+        return city != null ? city : "General";
     }
 
     /**
@@ -122,7 +150,8 @@ public class Categorizer {
         List<NewsItem> all = db.getAllForRecategorize();
         for (NewsItem n : all) {
             if ("Saved".equals(n.category)) continue; // user-saved links keep their shelf
-            db.setCategory(n.id, categorize(n.sourceName, n.title, n.description));
+            db.setCategory(n.id,
+                    categorize(n.sourceName, n.sourceUrl, n.title, n.description));
         }
         int count = all.size();
         db.close();
