@@ -121,5 +121,50 @@
             android:text="+ Add RSS / Atom feed"
             android:backgroundTint="@color/teal"
             android:textColor="#FFFFFF" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="Backup &amp; restore"
+            android:textStyle="bold"
+            android:textSize="16sp"
+            android:textColor="@color/teal_dark" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="4dp"
+            android:text="Save your feeds and event pages to a CSV file, and bring them back on this or another phone."
+            android:textSize="13sp"
+            android:textColor="@color/grey" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:layout_marginTop="8dp">
+
+            <Button
+                android:id="@+id/btnExportConfig"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:minWidth="0dp"
+                android:text="Export"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="@color/teal" />
+
+            <Button
+                android:id="@+id/btnImportConfig"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:layout_marginStart="8dp"
+                android:minWidth="0dp"
+                android:text="Import"
+                android:textColor="#FFFFFF"
+                android:backgroundTint="@color/teal" />
+        </LinearLayout>
     </LinearLayout>
 </ScrollView>
