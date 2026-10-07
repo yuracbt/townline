@@ -42,6 +42,17 @@ public class MainActivity extends Activity {
         Button btnRefresh = findViewById(R.id.btnRefresh);
         Button btnSettings = findViewById(R.id.btnSettings);
 
+        // header title: "Local News Line" + installed version
+        String version = "";
+        try {
+            version = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+        } catch (Exception ignored) { }
+        ((TextView) findViewById(R.id.titleText))
+                .setText(getString(R.string.feed_title) + " " + version);
+
+        findViewById(R.id.infoCircle).setOnClickListener(v ->
+                startActivity(new Intent(this, AboutActivity.class)));
+
         adapter = new FeedAdapter();
         list.setAdapter(adapter);
         list.setEmptyView(findViewById(R.id.emptyView));
@@ -78,9 +89,6 @@ public class MainActivity extends Activity {
 
         findViewById(R.id.btnDiscover).setOnClickListener(v ->
                 startActivity(new Intent(this, DiscoverActivity.class)));
-
-        findViewById(R.id.btnAbout).setOnClickListener(v ->
-                startActivity(new Intent(this, AboutActivity.class)));
 
         // first ever open: kick a scan if the feed is empty
         if (db.getItems(1).isEmpty()) {
