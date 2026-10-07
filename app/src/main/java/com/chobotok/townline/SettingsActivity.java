@@ -211,6 +211,7 @@ public class SettingsActivity extends Activity {
             else if (s.lastSync == 0) m.append("Not scanned yet");
             else m.append(s.lastCount).append(" stories • ")
                     .append(MainActivity.relTime(s.lastSync));
+            m.append(" • ").append(Categorizer.thinkSource(s.name, s.url));
             meta.setText(m.toString());
 
             enabled.setOnCheckedChangeListener(null);
