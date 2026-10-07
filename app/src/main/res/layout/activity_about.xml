@@ -38,7 +38,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="24dp"
-        android:text="Your town's news line. TownLine scans local news, community and business sources near you and notifies you when new stories arrive — so you never miss what's happening in your town."
+        android:text="Your town's news line. TownLine scans local news, community and business sources near you and notifies you when new stories arrive — so you never miss what's happening in your town. You can also add any RSS or Atom feed yourself, and TownLine will follow it like any built-in source."
         android:textSize="15sp"
         android:textColor="@color/ink"
         android:lineSpacingExtra="4dp" />
