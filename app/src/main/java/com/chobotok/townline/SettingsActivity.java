@@ -84,6 +84,20 @@ public class SettingsActivity extends Activity {
 
         findViewById(R.id.btnAddSource).setOnClickListener(v -> showAddSourceDialog());
 
+        findViewById(R.id.btnRethink).setOnClickListener(v -> {
+            v.setEnabled(false);
+            Toast.makeText(this, "Rethinking categories…", Toast.LENGTH_SHORT).show();
+            new Thread(() -> {
+                final int n = Categorizer.rethinkAll(SettingsActivity.this);
+                runOnUiThread(() -> {
+                    v.setEnabled(true);
+                    Toast.makeText(SettingsActivity.this,
+                            "Recategorized " + n + " stories — filters updated",
+                            Toast.LENGTH_LONG).show();
+                });
+            }).start();
+        });
+
         findViewById(R.id.btnExportConfig).setOnClickListener(v -> exportConfig());
         findViewById(R.id.btnImportConfig).setOnClickListener(v -> {
             Intent i = new Intent(Intent.ACTION_OPEN_DOCUMENT);
